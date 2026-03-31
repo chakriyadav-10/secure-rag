@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+python-multipart
+PyJWT
+passlib
+bcrypt
+openai
+faiss-cpu
+numpy
+PyPDF2

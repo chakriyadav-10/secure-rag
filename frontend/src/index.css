@@ -1,0 +1,37 @@
+:root {
+  --bg-primary: #0f0f10;
+  --bg-secondary: #1a1a1d;
+  --bg-tertiary: #222227;
+  --bg-card: #1e1e22;
+  --border: #2e2e35;
+  --accent: #6c63ff;
+  --accent-hover: #7c74ff;
+  --accent-light: rgba(108, 99, 255, 0.15);
+  --text-primary: #f0f0f5;
+  --text-secondary: #9999aa;
+  --text-muted: #666677;
+  --success: #22c55e;
+  --danger: #ef4444;
+  --danger-light: rgba(239, 68, 68, 0.12);
+  --admin-accent: #3b82f6;
+  --admin-light: rgba(59, 130, 246, 0.12);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  min-height: 100vh;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-secondary); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
