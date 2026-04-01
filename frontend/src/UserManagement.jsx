@@ -9,7 +9,10 @@ function UserManagement({ token }) {
     fetch(`${API_URL}/users?token=${token}`)
       .then(res => res.json())
       .then(data => {
-        if (data.users) setUsers(data.users);
+        if (data.users) {
+          const sortedUsers = data.users.sort((a, b) => b.is_master - a.is_master);
+          setUsers(sortedUsers);
+        }
         setLoading(false);
       })
       .catch(err => {
