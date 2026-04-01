@@ -113,7 +113,7 @@ function UserManagement({ token }) {
                         Promote to Admin ⬆️
                       </button>
                     )}
-                    {u.role === "admin" && u.username !== "admin" && !u.is_blocked && (
+                    {u.role === "admin" && !u.is_master && !u.is_blocked && (
                       <button 
                         onClick={() => demoteUser(u.username)}
                         style={{

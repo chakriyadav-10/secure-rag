@@ -191,6 +191,8 @@ def get_users(token: str):
     
     # Filter out blocked users from the management dashboard
     users = list(get_users_collection().find({"is_blocked": {"$ne": True}}, {"_id": 0, "password": 0}))
+    for u in users:
+        u["is_master"] = (u.get("username") == MASTER_ADMIN_USER)
     return {"users": users}
 
 @app.post("/users/{target_username}/promote")
