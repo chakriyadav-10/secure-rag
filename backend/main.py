@@ -143,7 +143,7 @@ async def upload(file: UploadFile, token: str):
     }
 
 @app.post("/query")
-def query(q: str, token: str):
+def query(q: str, token: str, session_id: str):
     user = authorize(token)
     
     # Limitation Fix: DoS Protection via Rate Limiter
@@ -180,6 +180,7 @@ def query(q: str, token: str):
         from datetime import datetime
         get_users_collection().database['chats'].insert_one({
             "user": user["sub"],
+            "session_id": session_id,
             "query": q,
             "answer": ans,
             "source": source,
@@ -194,14 +195,31 @@ def query(q: str, token: str):
     return {"answer": ans, "source": source}
 
 @app.get("/chats")
-def get_chats(token: str):
+def get_chats(token: str, session_id: str):
     user = authorize(token)
     from auth import get_users_collection
     # Exclude _id to prevent FastAPI JSON serialization errors with ObjectId
     chats = list(get_users_collection().database['chats'].find(
-        {"user": user["sub"]}, {"_id": 0}
+        {"user": user["sub"], "session_id": session_id}, {"_id": 0}
     ).sort("timestamp", 1))
     return {"chats": chats}
+
+@app.get("/sessions")
+def get_sessions(token: str):
+    user = authorize(token)
+    from auth import get_users_collection
+    pipeline = [
+        {"$match": {"user": user["sub"], "session_id": {"$exists": True}}},
+        {"$sort": {"timestamp": 1}},
+        {"$group": {
+            "_id": "$session_id",
+            "title": {"$first": "$query"},
+            "timestamp": {"$first": "$timestamp"}
+        }},
+        {"$sort": {"timestamp": -1}}
+    ]
+    sessions = list(get_users_collection().database['chats'].aggregate(pipeline))
+    return {"sessions": sessions}
 
 @app.get("/audits")
 def get_audits(token: str):
