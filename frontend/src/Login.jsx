@@ -1,5 +1,5 @@
 import axios from "axios";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function Login({ setToken, setRole, setIsMaster }) {
   const [user, setUser] = useState("");
@@ -9,8 +9,41 @@ export default function Login({ setToken, setRole, setIsMaster }) {
   const [error, setError] = useState("");
   const [errorType, setErrorType] = useState("");
 
+  const [showPassword, setShowPassword] = useState(false);
+  const [usernameStatus, setUsernameStatus] = useState(null);
+  const [checkingUser, setCheckingUser] = useState(false);
+
+  useEffect(() => {
+    if (!isRegistering || user.length === 0) {
+      setUsernameStatus(null);
+      return;
+    }
+    
+    if (user.length < 3) {
+      setUsernameStatus({ available: false, msg: "Too short" });
+      return;
+    }
+
+    setCheckingUser(true);
+    const timeoutId = setTimeout(() => {
+      const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+      axios.get(`${API_URL}/check-username`, { params: { username: user } })
+        .then(res => setUsernameStatus(res.data))
+        .finally(() => setCheckingUser(false));
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [user, isRegistering]);
+
   const authenticate = async () => {
     if (!user || !pass) return;
+    
+    if (isRegistering && usernameStatus && !usernameStatus.available) {
+      setError(`Cannot complete registration: Username ${usernameStatus.msg.toLowerCase()}`);
+      setErrorType("error");
+      return;
+    }
+
     setLoading(true);
     setError("");
     setErrorType("");
@@ -89,10 +122,10 @@ export default function Login({ setToken, setRole, setIsMaster }) {
         </div>
 
         {[
-          { placeholder: "Username", value: user, setter: setUser, type: "text" },
-          { placeholder: "Password", value: pass, setter: setPass, type: "password" }
+          { placeholder: "Username", value: user, setter: setUser, type: "text", isUsername: true },
+          { placeholder: "Password", value: pass, setter: setPass, type: showPassword ? "text" : "password", isPassword: true }
         ].map(field => (
-          <div key={field.placeholder} style={{ marginBottom: "14px" }}>
+          <div key={field.placeholder} style={{ marginBottom: "14px", position: "relative" }}>
             <input
               type={field.type}
               placeholder={field.placeholder}
@@ -108,6 +141,29 @@ export default function Login({ setToken, setRole, setIsMaster }) {
               onFocus={e => e.target.style.borderColor = "var(--accent)"}
               onBlur={e => e.target.style.borderColor = "var(--border)"}
             />
+            {field.isPassword && (
+              <span 
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  position: "absolute", right: "12px", top: "14px",
+                  cursor: "pointer", fontSize: "16px", color: "var(--text-muted)"
+                }}
+              >
+                {showPassword ? "🙈" : "👁️"}
+              </span>
+            )}
+            {field.isUsername && isRegistering && user.length > 0 && (
+              <div style={{ marginTop: "6px", fontSize: "12px", display: "flex", alignItems: "center", gap: "6px", color: usernameStatus?.available ? "#4ade80" : "#f87171" }}>
+                {checkingUser ? (
+                  <span style={{ color: "var(--text-muted)" }}>⏳ Checking...</span>
+                ) : (
+                  <>
+                    <span>{usernameStatus?.available ? "✅" : "❌"}</span>
+                    <span>{usernameStatus?.available ? "Username is available!" : `Username ${usernameStatus?.msg?.toLowerCase() || "taken"}`}</span>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         ))}
 

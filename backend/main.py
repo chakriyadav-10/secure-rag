@@ -51,6 +51,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/check-username")
+def check_username(username: str):
+    from auth import get_users_collection
+    if len(username) < 3:
+        return {"available": False, "msg": "Too short"}
+    if get_users_collection().find_one({"username": username}):
+        return {"available": False, "msg": "Taken"}
+    return {"available": True, "msg": "Available"}
+
 @app.post("/register")
 def register(username: str, password: str, role: str = "user"):
     # LIMITATION FIX: Hardcode role to "user" to prevent Mass Assignment (IDOR) attacks.
