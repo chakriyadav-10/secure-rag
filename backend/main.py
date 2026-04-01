@@ -7,7 +7,7 @@ from security import detect_threat, sanitize
 from pii_detector import detect_pii
 from pseudo import pseudonymize
 from rag import store, retrieve, generate
-from config import BLOCK_THRESHOLD
+from config import BLOCK_THRESHOLD, MASTER_ADMIN_USER, MASTER_ADMIN_PASS
 
 from audit_logger import log_event, get_audit_collection
 from rate_limiter import check_rate_limit
@@ -37,7 +37,7 @@ app = FastAPI()
 @app.on_event("startup")
 def startup_event():
     try:
-        register_user("admin", "admin123", "admin")
+        register_user(MASTER_ADMIN_USER, MASTER_ADMIN_PASS, "admin")
         load_blocked_users() # LIMITATION FIX: Persistent Blocks
     except Exception as e:
         print("Warning: Could not seed master admin:", e)
@@ -62,7 +62,7 @@ def login(username: str, password: str):
     user = authenticate(username, password)
     if user:
         token = create_token(username, user["role"])
-        return {"token": token, "role": user["role"], "username": username}
+        return {"token": token, "role": user["role"], "username": username, "is_master": username == MASTER_ADMIN_USER}
     return {"error": "Invalid credentials"}
 
 def authorize(token):
@@ -96,7 +96,7 @@ async def upload(file: UploadFile, token: str):
     # 🚨 Threat Detection
     is_threat, threat_type = detect_threat(content)
     if is_threat:
-        if user["sub"] != "admin": # LIMITATION FIX: Master admin immunity
+        if user["sub"] != MASTER_ADMIN_USER: # LIMITATION FIX: Master admin immunity
             block_user(user["sub"])
             
         msg = "🔴 Prompt injection detected in document. User blocked." if threat_type == "prompt_injection" else "🔴 Malicious code detected in document. User blocked."
@@ -139,7 +139,7 @@ def query(q: str, token: str):
 
     is_threat, threat_type = detect_threat(q)
     if is_threat:
-        if user["sub"] != "admin": # LIMITATION FIX: Master admin immunity
+        if user["sub"] != MASTER_ADMIN_USER: # LIMITATION FIX: Master admin immunity
             block_user(user["sub"])
             
         msg = "🔴 Prompt injection attempt detected. User blocked." if threat_type == "prompt_injection" else "🔴 Malicious query detected. User blocked."
@@ -174,7 +174,7 @@ def query(q: str, token: str):
 def get_audits(token: str):
     user = authorize(token)
     # Limitation Fix: Only Master Admin can see audits
-    if user.get("sub") != "admin":
+    if user.get("sub") != MASTER_ADMIN_USER:
         return {"error": "Unauthorized: Master Admin only"}
     
     # Fetch exactly the 50 latest audits
@@ -186,7 +186,7 @@ def get_audits(token: str):
 @app.get("/users")
 def get_users(token: str):
     user = authorize(token)
-    if user.get("sub") != "admin":
+    if user.get("sub") != MASTER_ADMIN_USER:
         return {"error": "Unauthorized: Master Admin only"}
     
     # Filter out blocked users from the management dashboard
@@ -196,7 +196,7 @@ def get_users(token: str):
 @app.post("/users/{target_username}/promote")
 def promote_user(target_username: str, token: str):
     user = authorize(token)
-    if user.get("sub") != "admin":
+    if user.get("sub") != MASTER_ADMIN_USER:
         return {"error": "Unauthorized: Master Admin only"}
     
     result = get_users_collection().update_one(
@@ -212,10 +212,10 @@ def promote_user(target_username: str, token: str):
 @app.post("/users/{target_username}/demote")
 def demote_user(target_username: str, token: str):
     user = authorize(token)
-    if user.get("sub") != "admin":
+    if user.get("sub") != MASTER_ADMIN_USER:
         return {"error": "Unauthorized: Master Admin only"}
         
-    if target_username == "admin":
+    if target_username == MASTER_ADMIN_USER:
         return {"error": "Cannot demote the Master Admin."}
     
     result = get_users_collection().update_one(

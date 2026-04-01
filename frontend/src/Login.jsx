@@ -1,7 +1,7 @@
 import axios from "axios";
 import { useState } from "react";
 
-export default function Login({ setToken, setRole, setUsername }) {
+export default function Login({ setToken, setRole, setIsMaster }) {
   const [user, setUser] = useState("");
   const [pass, setPass] = useState("");
   const [isRegistering, setIsRegistering] = useState(false);
@@ -29,7 +29,7 @@ export default function Login({ setToken, setRole, setUsername }) {
         });
         setToken(res.data.token);
         if (setRole && res.data.role) setRole(res.data.role);
-        if (setUsername && res.data.username) setUsername(res.data.username);
+        if (setIsMaster !== undefined) setIsMaster(res.data.is_master);
       }
     } catch (e) {
       const msg = e.response?.data?.error || e.message || "";

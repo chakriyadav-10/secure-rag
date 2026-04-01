@@ -9,11 +9,12 @@ function App() {
   const [token, setToken] = useState("");
   const [role, setRole] = useState("");
   const [username, setUsername] = useState("");
+  const [isMaster, setIsMaster] = useState(false);
   const [activeTab, setActiveTab] = useState("upload");
 
-  const logout = () => { setToken(""); setRole(""); setUsername(""); };
+  const logout = () => { setToken(""); setRole(""); setUsername(""); setIsMaster(false); };
 
-  if (!token) return <Login setToken={setToken} setRole={setRole} setUsername={setUsername} />;
+  if (!token) return <Login setToken={setToken} setRole={setRole} setIsMaster={setIsMaster} />;
 
   return (
     <div style={{
@@ -44,7 +45,7 @@ function App() {
         }}>
           <div style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "2px" }}>Signed in as</div>
           <div style={{ fontSize: "13px", fontWeight: "600", color: role === "admin" ? "#60a5fa" : "var(--accent)" }}>
-            {role === "admin" ? (username === "admin" ? "👑 Master Admin" : "⚙️ Administrator") : "👤 User"}
+            {role === "admin" ? (isMaster ? "👑 Master Admin" : "⚙️ Administrator") : "👤 User"}
           </div>
         </div>
 
@@ -57,7 +58,7 @@ function App() {
               background: activeTab === "upload" ? "rgba(255,255,255,0.1)" : "transparent", color: "var(--text-primary)"
             }}>📚 Knowledge Base</button>
             
-            {username === "admin" && (
+            {isMaster && (
               <>
                 <button onClick={() => setActiveTab("users")} style={{
                   padding: "10px", border: "none", borderRadius: "8px", cursor: "pointer", textAlign: "left", fontSize: "13px", fontWeight: "600",
@@ -124,8 +125,8 @@ function App() {
                   <Upload token={token} />
                 </>
               )}
-              {activeTab === "users" && username === "admin" && <UserManagement token={token} />}
-              {activeTab === "audits" && username === "admin" && <Audits token={token} />}
+              {activeTab === "users" && isMaster && <UserManagement token={token} />}
+              {activeTab === "audits" && isMaster && <Audits token={token} />}
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", height: "100%", maxWidth: "760px", margin: "0 auto", width: "100%" }}>

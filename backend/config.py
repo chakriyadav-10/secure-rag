@@ -6,6 +6,8 @@ load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 SECRET_KEY = os.getenv("SECRET_KEY", "supersecretkey")
 BLOCK_THRESHOLD = int(os.getenv("BLOCK_THRESHOLD", 3))
+MASTER_ADMIN_USER = os.getenv("MASTER_ADMIN_USER", "admin")
+MASTER_ADMIN_PASS = os.getenv("MASTER_ADMIN_PASS", "admin123")
 
 # Cloud Database Configurations
 MONGO_URI = os.getenv("MONGO_URI", "")
