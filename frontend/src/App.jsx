@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
 import Login from "./Login";
 import Upload from "./Upload";
 import Query from "./Query";
@@ -11,6 +12,20 @@ function App() {
   const [username, setUsername] = useState("");
   const [isMaster, setIsMaster] = useState(false);
   const [activeTab, setActiveTab] = useState("upload");
+
+  const [sessions, setSessions] = useState([]);
+  const [activeSessionId, setActiveSessionId] = useState(null);
+
+  useEffect(() => {
+    if (token) {
+      const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+      axios.get(`${API_URL}/sessions`, { params: { token } })
+        .then(res => {
+          if (res.data.sessions) setSessions(res.data.sessions);
+        })
+        .catch(err => console.error("Failed to load global sessions", err));
+    }
+  }, [token]);
 
   const logout = () => { setToken(""); setRole(""); setUsername(""); setIsMaster(false); };
 
@@ -72,11 +87,33 @@ function App() {
             )}
           </div>
         ) : (
-          <div>
-            <div style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "10px", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.5px" }}>How it works</div>
-            {["🔒 Documents are scanned for threats", "🧹 Content is sanitized", "🔐 PII is pseudonymized", "🧠 Stored in secure vector DB"].map(tip => (
-              <div key={tip} style={{ fontSize: "12px", color: "var(--text-secondary)", marginBottom: "8px" }}>{tip}</div>
-            ))}
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px", flex: 1, overflowY: "auto", minHeight: 0 }}>
+            <button onClick={() => { setActiveSessionId(null); document.getElementById("chat-panel")?.scrollIntoView({behavior: "smooth"}) }} style={{
+              padding: "10px", background: "var(--accent)", color: "white",
+              border: "none", borderRadius: "8px", cursor: "pointer",
+              fontWeight: "600", fontSize: "14px", marginBottom: "16px",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: "8px"
+            }}>
+              <span>➕</span> New Chat
+            </button>
+
+            <div style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "8px", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.5px" }}>Recent Chats</div>
+            
+            <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+              {sessions.map(s => (
+                <button key={s._id} onClick={() => { setActiveSessionId(s._id); document.getElementById("chat-panel")?.scrollIntoView({behavior: "smooth"}) }} style={{
+                  padding: "10px 12px", background: activeSessionId === s._id ? "var(--bg-tertiary)" : "transparent",
+                  border: "1px solid", borderColor: activeSessionId === s._id ? "var(--border)" : "transparent",
+                  borderRadius: "6px", cursor: "pointer", textAlign: "left",
+                  color: activeSessionId === s._id ? "var(--text-primary)" : "var(--text-secondary)",
+                  fontSize: "13px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                  transition: "all 0.2s"
+                }}>
+                  💬 {s.title}
+                </button>
+              ))}
+              {sessions.length === 0 && <div style={{ fontSize: "12px", color: "var(--text-muted)", textAlign: "center", marginTop: "10px" }}>No past history</div>}
+            </div>
           </div>
         )}
 
@@ -138,8 +175,13 @@ function App() {
                   <Upload token={token} />
                 </div>
               </div>
-              <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: "300px" }}>
-                <Query token={token} />
+              <div id="chat-panel" style={{ flex: 1, minHeight: 0 }}>
+                <Query 
+                  token={token} 
+                  activeSessionId={activeSessionId}
+                  setActiveSessionId={setActiveSessionId}
+                  setSessions={setSessions}
+                />
               </div>
             </div>
           )}
