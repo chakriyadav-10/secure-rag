@@ -47,12 +47,33 @@ def get_password_hash(password: str) -> str:
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
 
-def register_user(username, password, role):
-    get_users_collection().update_one(
-        {"username": username},
-        {"$set": {"password": get_password_hash(password), "role": role, "is_blocked": False}},
-        upsert=True
-    )
+import re
+
+def is_strong_password(password: str) -> bool:
+    if len(password) < 8: return False
+    if not re.search(r"[a-z]", password): return False
+    if not re.search(r"[A-Z]", password): return False
+    if not re.search(r"\d", password): return False
+    if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", password): return False
+    return True
+
+def register_user(username, password, role, skip_checks=False):
+    if not skip_checks and not is_strong_password(password):
+        return False, "Password must be at least 8 characters long, with an uppercase letter, a number, and a special character."
+        
+    users = get_users_collection()
+    if users.find_one({"username": username}):
+        if skip_checks:
+            users.update_one({"username": username}, {"$set": {"password": get_password_hash(password), "role": role}})
+        return False, "Username already exists. Please choose a unique username."
+        
+    users.insert_one({
+        "username": username,
+        "password": get_password_hash(password),
+        "role": role,
+        "is_blocked": False
+    })
+    return True, "Success"
 
 def authenticate(username, password):
     user = get_users_collection().find_one({"username": username})

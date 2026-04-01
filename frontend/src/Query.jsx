@@ -10,6 +10,25 @@ export default function Query({ token }) {
   const bottomRef = useRef(null);
 
   useEffect(() => {
+    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+    axios.get(`${API_URL}/chats`, { params: { token } })
+      .then(res => {
+        if (res.data.chats && res.data.chats.length > 0) {
+          const history = [];
+          res.data.chats.forEach(chat => {
+            history.push({ role: "user", text: chat.query });
+            history.push({ role: "assistant", text: chat.answer, source: chat.source });
+          });
+          setMessages([
+            { role: "assistant", text: "Welcome back! Here is your securely saved chat history." },
+            ...history
+          ]);
+        }
+      })
+      .catch(err => console.error("Failed to load chat history", err));
+  }, [token]);
+
+  useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 

@@ -1,4 +1,5 @@
-from fastapi import FastAPI, UploadFile
+from fastapi import FastAPI, UploadFile, HTTPException
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import io, re
 from PyPDF2 import PdfReader
@@ -37,7 +38,7 @@ app = FastAPI()
 @app.on_event("startup")
 def startup_event():
     try:
-        register_user(MASTER_ADMIN_USER, MASTER_ADMIN_PASS, "admin")
+        register_user(MASTER_ADMIN_USER, MASTER_ADMIN_PASS, "admin", skip_checks=True)
         load_blocked_users() # LIMITATION FIX: Persistent Blocks
     except Exception as e:
         print("Warning: Could not seed master admin:", e)
@@ -54,7 +55,9 @@ app.add_middleware(
 def register(username: str, password: str, role: str = "user"):
     # LIMITATION FIX: Hardcode role to "user" to prevent Mass Assignment (IDOR) attacks.
     # Even if a hacker passes ?role=admin, the backend completely ignores it.
-    register_user(username, password, "user")
+    success, msg = register_user(username, password, "user")
+    if not success:
+        return JSONResponse(status_code=400, content={"error": msg})
     return {"msg": "Registered"}
 
 @app.post("/login")
@@ -162,6 +165,17 @@ def query(q: str, token: str):
         context = retrieve(q, owner_ids)
         safe_context = [sanitize(c) for c in context]
         ans, source = generate(q, safe_context)
+        
+        # Save explicitly to MongoDB Chats database
+        from auth import get_users_collection
+        from datetime import datetime
+        get_users_collection().database['chats'].insert_one({
+            "user": user["sub"],
+            "query": q,
+            "answer": ans,
+            "source": source,
+            "timestamp": datetime.utcnow()
+        })
     except Exception as e:
         err = str(e)
         if "quota" in err or "429" in err or "RateLimit" in err:
@@ -169,6 +183,16 @@ def query(q: str, token: str):
         return {"answer": f"Error processing query: {err}", "source": ""}
 
     return {"answer": ans, "source": source}
+
+@app.get("/chats")
+def get_chats(token: str):
+    user = authorize(token)
+    from auth import get_users_collection
+    # Exclude _id to prevent FastAPI JSON serialization errors with ObjectId
+    chats = list(get_users_collection().database['chats'].find(
+        {"user": user["sub"]}, {"_id": 0}
+    ).sort("timestamp", 1))
+    return {"chats": chats}
 
 @app.get("/audits")
 def get_audits(token: str):
