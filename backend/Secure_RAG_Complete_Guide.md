@@ -15,7 +15,23 @@
   .box-red { background: #f8d7da; border-left: 4px solid #dc3545; padding: 10px; border-radius: 6px; margin: 10px 0; page-break-inside: avoid; }
   .box-yellow { background: #fff3cd; border-left: 4px solid #ffc107; padding: 10px; border-radius: 6px; margin: 10px 0; page-break-inside: avoid; }
   .box-purple { background: #e8daef; border-left: 4px solid #8e44ad; padding: 10px; border-radius: 6px; margin: 10px 0; page-break-inside: avoid; }
-  .diagram { background: #f4f6fa; border: 2px solid #0f3460; border-radius: 10px; padding: 16px; margin: 12px 0; font-family: monospace; white-space: pre; line-height: 1.4; font-size: 10.5px; page-break-inside: avoid; }
+  .diagram { background: #f4f6fa; border: 2px solid #0f3460; border-radius: 10px; padding: 16px; margin: 12px 0; page-break-inside: avoid; font-size: 12px; }
+  .arch-box { display: inline-block; border: 2px solid #0f3460; border-radius: 8px; padding: 10px 16px; margin: 4px; text-align: center; font-weight: 600; font-size: 11px; }
+  .arch-box-blue { background: #d1ecf1; color: #0f3460; }
+  .arch-box-green { background: #d4edda; color: #155724; }
+  .arch-box-purple { background: #e8daef; color: #6c3483; }
+  .arch-box-red { background: #f8d7da; color: #721c24; }
+  .arch-box-yellow { background: #fff3cd; color: #856404; }
+  .arch-arrow { font-size: 20px; color: #e94560; font-weight: bold; margin: 4px 8px; }
+  .step-row { display: flex; align-items: center; margin: 6px 0; }
+  .step-num { background: #0f3460; color: white; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; flex-shrink: 0; margin-right: 10px; }
+  .step-box { flex: 1; border: 2px solid #0f3460; border-radius: 8px; padding: 8px 12px; font-size: 11px; }
+  .step-box-green { background: #d4edda; border-color: #28a745; }
+  .step-box-red { background: #f8d7da; border-color: #dc3545; }
+  .step-box-blue { background: #d1ecf1; border-color: #17a2b8; }
+  .step-box-yellow { background: #fff3cd; border-color: #ffc107; }
+  .step-box-purple { background: #e8daef; border-color: #8e44ad; }
+  .step-connector { width: 28px; display: flex; justify-content: center; margin: 0; color: #e94560; font-size: 16px; font-weight: bold; }
 </style>
 
 # 🔐 Secure Enterprise Banking RAG
@@ -52,26 +68,37 @@ Unlike a standard RAG system, our pipeline implements **7 security layers** befo
 
 # 2. SYSTEM ARCHITECTURE
 
-<div class="diagram">
-┌──────────────────────────────────────────────────────────────────────────┐
-│                        SECURE RAG ARCHITECTURE                          │
-├──────────────────────────────────────────────────────────────────────────┤
-│                                                                          │
-│   ┌─────────────┐         ┌──────────────────────────────────────────┐  │
-│   │   FRONTEND   │         │              BACKEND (FastAPI)           │  │
-│   │  React/Vite  │ ──API──▶│                                          │  │
-│   │   (Vercel)   │         │  ┌────────┐  ┌──────────┐  ┌─────────┐ │  │
-│   │              │         │  │  AUTH   │  │ SECURITY │  │   RAG   │ │  │
-│   │ • Login Page │         │  │  Layer  │  │  Engine  │  │ Engine  │ │  │
-│   │ • Chat UI    │         │  └───┬────┘  └────┬─────┘  └────┬────┘ │  │
-│   │ • Upload     │         │      │            │              │      │  │
-│   │ • Admin Panel│         │      ▼            ▼              ▼      │  │
-│   └─────────────┘         │  ┌────────┐  ┌──────────┐  ┌─────────┐ │  │
-│                            │  │MongoDB │  │Pseudonym │  │Pinecone │ │  │
-│                            │  │ Atlas  │  │+ AES-256 │  │ Vectors │ │  │
-│                            │  └────────┘  └──────────┘  └─────────┘ │  │
-│                            └──────────────────────────────────────────┘  │
-└──────────────────────────────────────────────────────────────────────────┘
+<div class="diagram" style="text-align:center;">
+<div style="font-weight:700; font-size:14px; color:#0f3460; margin-bottom:12px;">SECURE RAG ARCHITECTURE</div>
+<table style="width:100%; border:none; margin:0 auto;">
+<tr>
+<td style="border:none; width:30%; vertical-align:top; padding:8px;">
+<div class="arch-box arch-box-blue" style="width:100%;">
+<div style="font-size:13px;">🖥️ FRONTEND</div>
+<div style="font-size:10px; font-weight:400;">React/Vite (Vercel)</div>
+<hr style="border:1px solid #17a2b8; margin:6px 0;">
+<div style="font-size:10px; font-weight:400; text-align:left;">• Login Page<br>• Chat UI<br>• Upload Portal<br>• Admin Dashboard</div>
+</div>
+</td>
+<td style="border:none; width:5%; text-align:center; vertical-align:middle;"><span class="arch-arrow">→</span><br><span style="font-size:9px; color:#e94560;">REST API</span></td>
+<td style="border:none; width:65%; vertical-align:top; padding:8px;">
+<div style="border:2px solid #0f3460; border-radius:10px; padding:12px; background:#f0f4ff;">
+<div style="font-size:12px; font-weight:700; color:#0f3460; margin-bottom:8px;">⚙️ BACKEND (FastAPI on Render)</div>
+<div style="display:flex; gap:6px; justify-content:center; margin-bottom:8px;">
+<div class="arch-box arch-box-green">🔑 AUTH Layer</div>
+<div class="arch-box arch-box-red">🛡️ SECURITY Engine</div>
+<div class="arch-box arch-box-purple">🤖 RAG Engine</div>
+</div>
+<div style="text-align:center; color:#e94560; font-size:16px; font-weight:bold;">▼ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ▼ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ▼</div>
+<div style="display:flex; gap:6px; justify-content:center; margin-top:4px;">
+<div class="arch-box arch-box-yellow">🗄️ MongoDB Atlas</div>
+<div class="arch-box arch-box-purple">🔐 Pseudonym + AES-256</div>
+<div class="arch-box arch-box-blue">📊 Pinecone Vectors</div>
+</div>
+</div>
+</td>
+</tr>
+</table>
 </div>
 
 ---
@@ -80,33 +107,24 @@ Unlike a standard RAG system, our pipeline implements **7 security layers** befo
 
 ## 3.1 Role-Based Access Control (RBAC)
 
-<div class="diagram">
-┌──────────────────────────────────────────────────────┐
-│              DUAL-CHANNEL PROVISIONING                │
-├──────────────────────────────────────────────────────┤
-│                                                       │
-│  ENVIRONMENT VARIABLE (Server Level)                  │
-│           │                                           │
-│           ▼                                           │
-│  ┌─────────────────┐                                  │
-│  │  MASTER ADMIN    │ ── Creates credentials ──┐      │
-│  │  (Bank Head/CTO) │                          │      │
-│  └─────────────────┘                           ▼      │
-│                                     ┌──────────────┐  │
-│                                     │    ADMIN      │  │
-│                                     │ (Branch Mgr)  │  │
-│                                     └──────────────┘  │
-│                                                       │
-│  PUBLIC REGISTRATION (Self-Service)                   │
-│           │                                           │
-│           ▼                                           │
-│  ┌─────────────────┐                                  │
-│  │  NORMAL USER     │                                 │
-│  │  (Bank Customer) │                                 │
-│  └─────────────────┘                                  │
-│                                                       │
-│  ❌ NO promotion path from Customer → Admin           │
-└──────────────────────────────────────────────────────┘
+<div class="diagram" style="text-align:center;">
+<div style="font-weight:700; font-size:14px; color:#0f3460; margin-bottom:12px;">DUAL-CHANNEL PROVISIONING</div>
+<table style="width:100%; border:none;">
+<tr>
+<td style="border:none; width:48%; vertical-align:top; padding:8px;">
+<div style="font-size:10px; color:#666; margin-bottom:4px;">CHANNEL 1: Infrastructure Level</div>
+<div class="arch-box arch-box-yellow" style="width:100%; margin-bottom:6px;">👑 MASTER ADMIN<br><span style="font-size:9px; font-weight:400;">Bank Head / CTO<br>Created via Environment Variable</span></div>
+<div style="color:#e94560; font-size:16px; font-weight:bold;">▼ Creates credentials</div>
+<div class="arch-box arch-box-blue" style="width:100%; margin-top:6px;">⚙️ ADMIN (Manager)<br><span style="font-size:9px; font-weight:400;">Branch Manager<br>Created by Master Admin only</span></div>
+</td>
+<td style="border:none; width:4%; vertical-align:middle; text-align:center;"><div style="border-left:3px solid #dc3545; height:120px; margin:0 auto;"></div><div style="color:#dc3545; font-size:9px; font-weight:700;">NO PATH<br>BETWEEN</div></td>
+<td style="border:none; width:48%; vertical-align:top; padding:8px;">
+<div style="font-size:10px; color:#666; margin-bottom:4px;">CHANNEL 2: Public Self-Service</div>
+<div class="arch-box arch-box-green" style="width:100%;">👤 NORMAL USER (Customer)<br><span style="font-size:9px; font-weight:400;">Bank Customer<br>Self-registers via /register endpoint</span></div>
+<div style="margin-top:12px; padding:8px; background:#f8d7da; border-radius:6px; font-size:10px; font-weight:600; color:#dc3545;">❌ Customers can NEVER become Admin.<br>No promotion path exists.</div>
+</td>
+</tr>
+</table>
 </div>
 
 | Role | How Created | Permissions |
@@ -129,47 +147,28 @@ Unlike a standard RAG system, our pipeline implements **7 security layers** befo
 
 This is the most critical section. When a PDF is uploaded, it passes through **every security layer sequentially**:
 
-<div class="diagram">
-  PDF UPLOAD → STEP 1: TEXT EXTRACTION (PyPDF2)
-       │
-       ▼
-  STEP 2: THREAT DETECTION (security.py)
-  RegEx scan: SQLi, XSS, Prompt Injection, Shell Injection
-  🛑 If THREAT → Block user + Log SIEM + REJECT document
-       │ (clean)
-       ▼
-  STEP 3: CONTENT SANITIZATION (security.py)
-  Strip HTML tags, script blocks, SQL keywords
-       │
-       ▼
-  STEP 4: PII DETECTION (pii_detector.py)
-  25-char context lookbehind → Account, IFSC, Phone, Email
-       │
-       ▼
-  STEP 5: PSEUDONYMIZATION (pseudo.py)
-  "123456789012" → "ACCOUNT_f7ce"
-  + AES-256 ENCRYPT mapping → MongoDB
+<div class="diagram" style="page-break-inside:avoid;">
+<div style="font-weight:700; font-size:14px; color:#0f3460; margin-bottom:10px; text-align:center;">UPLOAD PIPELINE — Steps 1 to 5</div>
+<div class="step-row"><div class="step-num">1</div><div class="step-box step-box-blue"><strong>TEXT EXTRACTION</strong> — PyPDF2 extracts raw text from all PDF pages</div></div>
+<div style="text-align:center; color:#e94560; font-weight:bold;">▼</div>
+<div class="step-row"><div class="step-num">2</div><div class="step-box step-box-red"><strong>THREAT DETECTION</strong> (security.py) — RegEx scan: SQLi, XSS, Prompt Injection, Shell. 🛑 If threat → Block + REJECT</div></div>
+<div style="text-align:center; color:#e94560; font-weight:bold;">▼</div>
+<div class="step-row"><div class="step-num">3</div><div class="step-box" style="background:#fff0f0; border:2px solid #e94560; border-radius:8px; padding:8px 12px; font-size:11px;"><strong>SANITIZATION</strong> (security.py) — Strip HTML tags, script blocks, neutralize SQL keywords</div></div>
+<div style="text-align:center; color:#e94560; font-weight:bold;">▼</div>
+<div class="step-row"><div class="step-num">4</div><div class="step-box step-box-yellow"><strong>PII DETECTION</strong> (pii_detector.py) — 25-char context lookbehind → Account, IFSC, Phone, Email</div></div>
+<div style="text-align:center; color:#e94560; font-weight:bold;">▼</div>
+<div class="step-row"><div class="step-num">5</div><div class="step-box step-box-purple"><strong>PSEUDONYMIZATION</strong> (pseudo.py) — "123456789012" → "ACCOUNT_f7ce" + AES-256 encrypt → MongoDB</div></div>
 </div>
 
-<div class="diagram">
-  (continued from Step 5)
-       │
-       ▼
-  STEP 6: XAI CITATIONS (xai_citations.py)
-  Tag chunk: [Source: Page 1] ...text...
-       │
-       ▼
-  STEP 7: VECTORIZATION (rag.py)
-  Gemini Embedding API → 3072-dimension vector
-       │
-       ▼
-  STEP 8: DIFFERENTIAL PRIVACY (dp_embedding.py)
-  Add Laplacian noise: [0.1241, -0.5912] → [0.1275, -0.5878]
-       │
-       ▼
-  STEP 9: SECURE STORAGE (db.py)
-  Push to Pinecone: { values: [...], metadata: {
-      text: "pseudonymized...", owner_id: "sai" }}
+<div class="diagram" style="page-break-inside:avoid;">
+<div style="font-weight:700; font-size:14px; color:#0f3460; margin-bottom:10px; text-align:center;">UPLOAD PIPELINE — Steps 6 to 9</div>
+<div class="step-row"><div class="step-num">6</div><div class="step-box step-box-blue"><strong>XAI CITATIONS</strong> (xai_citations.py) — Tag chunk: [Source: Page 1]</div></div>
+<div style="text-align:center; color:#e94560; font-weight:bold;">▼</div>
+<div class="step-row"><div class="step-num">7</div><div class="step-box step-box-green"><strong>VECTORIZATION</strong> (rag.py) — Gemini Embedding API → 3072-dimension vector</div></div>
+<div style="text-align:center; color:#e94560; font-weight:bold;">▼</div>
+<div class="step-row"><div class="step-num">8</div><div class="step-box step-box-purple"><strong>DIFFERENTIAL PRIVACY</strong> (dp_embedding.py) — Laplacian noise: [0.1241] → [0.1275]</div></div>
+<div style="text-align:center; color:#e94560; font-weight:bold;">▼</div>
+<div class="step-row"><div class="step-num">9</div><div class="step-box step-box-green"><strong>SECURE STORAGE</strong> (db.py) — Push to Pinecone with owner_id metadata</div></div>
 </div>
 
 ---
@@ -286,47 +285,28 @@ DP-Noised Vector:  [0.1275, -0.5878, 0.9946, ..., -0.4378]  (3072 dimensions)
 
 # 6. QUERY PIPELINE (How Questions Are Answered)
 
-<div class="diagram">
-  USER ASKS: "What is the loan eligibility?"
-       │
-       ▼
-  STEP 1: JWT AUTHENTICATION → Verify token, extract user_id
-       │
-       ▼
-  STEP 2: RATE LIMITING → Check requests/minute
-       │
-       ▼
-  STEP 3: THREAT SCAN → Is query malicious? 🛑 Block if yes
-       │
-       ▼
-  STEP 4: BANKING TOPIC FILTER
-  ❌ "Tell me a joke" → Rejected
-  ✅ "Loan eligibility?" → Passed
+<div class="diagram" style="page-break-inside:avoid;">
+<div style="font-weight:700; font-size:14px; color:#0f3460; margin-bottom:10px; text-align:center;">QUERY PIPELINE — Steps 1 to 4</div>
+<div style="text-align:center; margin-bottom:8px; font-weight:600; color:#533483;">User asks: "What is the loan eligibility?"</div>
+<div class="step-row"><div class="step-num">1</div><div class="step-box step-box-green"><strong>JWT AUTHENTICATION</strong> — Verify token, extract user_id</div></div>
+<div style="text-align:center; color:#e94560; font-weight:bold;">▼</div>
+<div class="step-row"><div class="step-num">2</div><div class="step-box step-box-blue"><strong>RATE LIMITING</strong> — Check requests/minute per user</div></div>
+<div style="text-align:center; color:#e94560; font-weight:bold;">▼</div>
+<div class="step-row"><div class="step-num">3</div><div class="step-box step-box-red"><strong>THREAT SCAN</strong> — Is query malicious? 🛑 Block user if yes</div></div>
+<div style="text-align:center; color:#e94560; font-weight:bold;">▼</div>
+<div class="step-row"><div class="step-num">4</div><div class="step-box step-box-yellow"><strong>BANKING TOPIC FILTER</strong> — ❌ "Tell me a joke" → Rejected | ✅ "Loan eligibility?" → Passed</div></div>
 </div>
 
-<div class="diagram">
-  (continued from Step 4)
-       │
-       ▼
-  STEP 5: VECTOR SEARCH (Pinecone)
-  Query → 3072-dim vector → filter: {"owner_id": {"$in": ["admin","sai"]}}
-  Returns top-3 relevant document chunks
-       │
-       ▼
-  STEP 6: LLM GENERATION (Gemini Flash Lite)
-  Context + question → AI answer + XAI citations
-       │
-       ▼
-  STEP 7: DE-PSEUDONYMIZATION (pseudo.py)
-  If requester == owner: ACCOUNT_f7ce → 123456789012 (AES decrypt)
-  If requester != owner: Keep ACCOUNT_f7ce (hidden)
-       │
-       ▼
-  STEP 8: SAVE TO CHAT HISTORY (MongoDB)
-  { session_id, query, answer, user, timestamp }
-       │
-       ▼
-  USER SEES THE ANSWER
+<div class="diagram" style="page-break-inside:avoid;">
+<div style="font-weight:700; font-size:14px; color:#0f3460; margin-bottom:10px; text-align:center;">QUERY PIPELINE — Steps 5 to 8</div>
+<div class="step-row"><div class="step-num">5</div><div class="step-box step-box-blue"><strong>VECTOR SEARCH</strong> (Pinecone) — Query → 3072-dim vector → filter: {"owner_id": {"$in": ["admin","sai"]}}</div></div>
+<div style="text-align:center; color:#e94560; font-weight:bold;">▼</div>
+<div class="step-row"><div class="step-num">6</div><div class="step-box step-box-green"><strong>LLM GENERATION</strong> (Gemini Flash Lite) — Context + question → AI answer + XAI citations</div></div>
+<div style="text-align:center; color:#e94560; font-weight:bold;">▼</div>
+<div class="step-row"><div class="step-num">7</div><div class="step-box step-box-purple"><strong>DE-PSEUDONYMIZATION</strong> (pseudo.py) — Owner? ACCOUNT_f7ce → 123456789012 (AES decrypt) | Not owner? Keep token hidden</div></div>
+<div style="text-align:center; color:#e94560; font-weight:bold;">▼</div>
+<div class="step-row"><div class="step-num">8</div><div class="step-box step-box-green"><strong>SAVE TO CHAT HISTORY</strong> (MongoDB) — { session_id, query, answer, user, timestamp }</div></div>
+<div style="text-align:center; margin-top:8px; font-weight:700; color:#28a745; font-size:13px;">✅ USER SEES THE ANSWER</div>
 </div>
 
 ---
