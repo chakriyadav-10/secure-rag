@@ -240,43 +240,35 @@ def get_users(token: str):
     if user.get("sub") != MASTER_ADMIN_USER:
         return {"error": "Unauthorized: Master Admin only"}
     
-    # Filter out blocked users from the management dashboard
+    # Show all registered users (non-blocked customers + admins)
     users = list(get_users_collection().find({"is_blocked": {"$ne": True}}, {"_id": 0, "password": 0}))
     for u in users:
         u["is_master"] = (u.get("username") == MASTER_ADMIN_USER)
     return {"users": users}
 
-@app.post("/users/{target_username}/promote")
-def promote_user(target_username: str, token: str):
+@app.post("/admin/create-manager")
+def create_manager(username: str, password: str, token: str):
+    """Master Admin creates manager credentials directly — no promotion from customer."""
     user = authorize(token)
     if user.get("sub") != MASTER_ADMIN_USER:
-        return {"error": "Unauthorized: Master Admin only"}
+        return {"error": "Unauthorized: Only Master Admin can create manager accounts."}
     
-    result = get_users_collection().update_one(
-        {"username": target_username},
-        {"$set": {"role": "admin"}}
-    )
+    # Check if username already exists
+    if get_users_collection().find_one({"username": username}):
+        return JSONResponse(status_code=400, content={"error": f"Username '{username}' already exists."})
     
-    if result.modified_count > 0:
-        log_event(user["sub"], "USER_PROMOTED", f"Elevated {target_username} to general admin.")
-        return {"msg": f"User {target_username} promoted to admin successfully."}
-    return {"error": "User not found or already an admin."}
-
-@app.post("/users/{target_username}/demote")
-def demote_user(target_username: str, token: str):
-    user = authorize(token)
-    if user.get("sub") != MASTER_ADMIN_USER:
-        return {"error": "Unauthorized: Master Admin only"}
-        
-    if target_username == MASTER_ADMIN_USER:
-        return {"error": "Cannot demote the Master Admin."}
+    # Validate password strength
+    from auth import is_strong_password, get_password_hash
+    if not is_strong_password(password):
+        return JSONResponse(status_code=400, content={"error": "Password must be at least 8 characters with uppercase, lowercase, number, and special character."})
     
-    result = get_users_collection().update_one(
-        {"username": target_username},
-        {"$set": {"role": "user"}}
-    )
+    # Directly create admin-level account
+    get_users_collection().insert_one({
+        "username": username,
+        "password": get_password_hash(password),
+        "role": "admin",
+        "is_blocked": False
+    })
     
-    if result.modified_count > 0:
-        log_event(user["sub"], "USER_DEMOTED", f"Demoted {target_username} to basic user.")
-        return {"msg": f"User {target_username} demoted to user successfully."}
-    return {"error": "User not found or already a basic user."}
+    log_event(user["sub"], "MANAGER_CREATED", f"Created manager account: {username}")
+    return {"msg": f"Manager account '{username}' created successfully."}

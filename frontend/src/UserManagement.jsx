@@ -3,6 +3,11 @@ import React, { useState, useEffect } from "react";
 function UserManagement({ token }) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("users"); // "users" | "create"
+  const [newUsername, setNewUsername] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [message, setMessage] = useState(null);
   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
   const fetchUsers = () => {
@@ -10,7 +15,13 @@ function UserManagement({ token }) {
       .then(res => res.json())
       .then(data => {
         if (data.users) {
-          const sortedUsers = data.users.sort((a, b) => b.is_master - a.is_master);
+          const sortedUsers = data.users.sort((a, b) => {
+            if (a.is_master) return -1;
+            if (b.is_master) return 1;
+            if (a.role === "admin" && b.role !== "admin") return -1;
+            if (b.role === "admin" && a.role !== "admin") return 1;
+            return 0;
+          });
           setUsers(sortedUsers);
         }
         setLoading(false);
@@ -25,115 +36,177 @@ function UserManagement({ token }) {
     fetchUsers();
   }, [token]);
 
-  const promoteUser = (username) => {
-    fetch(`${API_URL}/users/${username}/promote?token=${token}`, {
+  const createManager = () => {
+    if (!newUsername.trim() || !newPassword.trim()) {
+      setMessage({ type: "error", text: "Please fill in both fields." });
+      return;
+    }
+    setCreating(true);
+    setMessage(null);
+    fetch(`${API_URL}/admin/create-manager?username=${encodeURIComponent(newUsername)}&password=${encodeURIComponent(newPassword)}&token=${token}`, {
       method: "POST"
     })
     .then(res => res.json())
     .then(data => {
       if (data.msg) {
-        alert(data.msg);
-        fetchUsers(); // Refresh list
+        setMessage({ type: "success", text: data.msg });
+        setNewUsername("");
+        setNewPassword("");
+        fetchUsers();
       } else if (data.error) {
-        alert(data.error);
+        setMessage({ type: "error", text: data.error });
       }
-    });
-  };
-
-  const demoteUser = (username) => {
-    fetch(`${API_URL}/users/${username}/demote?token=${token}`, {
-      method: "POST"
+      setCreating(false);
     })
-    .then(res => res.json())
-    .then(data => {
-      if (data.msg) {
-        alert(data.msg);
-        fetchUsers(); // Refresh list
-      } else if (data.error) {
-        alert(data.error);
-      }
+    .catch(err => {
+      setMessage({ type: "error", text: "Network error." });
+      setCreating(false);
     });
   };
 
   if (loading) return <div style={{ color: "var(--text-muted)", fontSize: "14px" }}>Loading users...</div>;
+
+  const tabStyle = (isActive) => ({
+    padding: "10px 20px", border: "none", borderRadius: "8px 8px 0 0", cursor: "pointer",
+    fontSize: "13px", fontWeight: "600", transition: "all 0.2s",
+    background: isActive ? "var(--bg-primary)" : "transparent",
+    color: isActive ? "var(--text-primary)" : "var(--text-muted)",
+    borderBottom: isActive ? "2px solid var(--accent)" : "2px solid transparent"
+  });
 
   return (
     <div style={{
       background: "var(--bg-primary)", padding: "20px", borderRadius: "12px",
       border: "1px solid var(--border)", boxShadow: "0 4px 6px rgba(0,0,0,0.02)", width: "100%", marginTop: "24px"
     }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-        <h3 style={{ fontSize: "15px", fontWeight: "600", color: "var(--text-primary)", margin: 0, display: "flex", alignItems: "center", gap: "8px" }}>
-          <span>👥</span> User Management (Master Admin)
-        </h3>
+      {/* Tab Header */}
+      <div style={{ display: "flex", gap: "4px", marginBottom: "20px", borderBottom: "1px solid var(--border)" }}>
+        <button onClick={() => setActiveTab("users")} style={tabStyle(activeTab === "users")}>
+          👥 Registered Users
+        </button>
+        <button onClick={() => setActiveTab("create")} style={tabStyle(activeTab === "create")}>
+          🔑 Create Manager Account
+        </button>
       </div>
-      
-      {users.length === 0 ? (
-        <p style={{ color: "var(--text-muted)", fontSize: "13px" }}>No users found.</p>
-      ) : (
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px", textAlign: "left" }}>
-            <thead>
-              <tr style={{ borderBottom: "1px solid var(--border)", color: "var(--text-muted)" }}>
-                <th style={{ padding: "10px 8px", fontWeight: "600" }}>Username</th>
-                <th style={{ padding: "10px 8px", fontWeight: "600" }}>Role</th>
-                <th style={{ padding: "10px 8px", fontWeight: "600" }}>Status</th>
-                <th style={{ padding: "10px 8px", fontWeight: "600" }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((u, idx) => (
-                <tr key={idx} style={{ borderBottom: "1px solid var(--border)" }}>
-                  <td style={{ padding: "10px 8px", color: "var(--text-primary)", fontWeight: "500" }}>{u.username}</td>
-                  <td style={{ padding: "10px 8px" }}>
-                    <span style={{
-                      padding: "4px 8px", borderRadius: "4px", fontSize: "11px", fontWeight: "600",
-                      background: u.role === "admin" ? "var(--admin-light)" : "var(--accent-light)",
-                      color: u.role === "admin" ? "#60a5fa" : "var(--accent)"
-                    }}>
-                      {u.role.toUpperCase()}
-                    </span>
-                  </td>
-                  <td style={{ padding: "10px 8px" }}>
-                    <span style={{
-                      padding: "4px 8px", borderRadius: "4px", fontSize: "11px", fontWeight: "600",
-                      background: u.is_blocked ? "var(--danger-light)" : "var(--success-light)",
-                      color: u.is_blocked ? "#ef4444" : "#10b981"
-                    }}>
-                      {u.is_blocked ? "BLOCKED" : "ACTIVE"}
-                    </span>
-                  </td>
-                  <td style={{ padding: "10px 8px" }}>
-                    {u.role !== "admin" && !u.is_blocked && (
-                      <button 
-                        onClick={() => promoteUser(u.username)}
-                        style={{
-                          background: "linear-gradient(135deg, #10b981, #059669)",
-                          color: "white", padding: "4px 10px", borderRadius: "6px",
-                          border: "none", fontSize: "11px", fontWeight: "600", cursor: "pointer"
-                        }}
-                      >
-                        Promote to Admin ⬆️
-                      </button>
-                    )}
-                    {u.role === "admin" && !u.is_master && !u.is_blocked && (
-                      <button 
-                        onClick={() => demoteUser(u.username)}
-                        style={{
-                          background: "linear-gradient(135deg, #ef4444, #dc2626)",
-                          color: "white", padding: "4px 10px", borderRadius: "6px",
-                          border: "none", fontSize: "11px", fontWeight: "600", cursor: "pointer"
-                        }}
-                      >
-                        Demote to User ⬇️
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+
+      {/* Tab: Registered Users */}
+      {activeTab === "users" && (
+        <>
+          <h3 style={{ fontSize: "15px", fontWeight: "600", color: "var(--text-primary)", margin: "0 0 16px 0", display: "flex", alignItems: "center", gap: "8px" }}>
+            <span>👥</span> All Registered Users
+          </h3>
+          {users.length === 0 ? (
+            <p style={{ color: "var(--text-muted)", fontSize: "13px" }}>No users found.</p>
+          ) : (
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px", textAlign: "left" }}>
+                <thead>
+                  <tr style={{ borderBottom: "1px solid var(--border)", color: "var(--text-muted)" }}>
+                    <th style={{ padding: "10px 8px", fontWeight: "600" }}>Username</th>
+                    <th style={{ padding: "10px 8px", fontWeight: "600" }}>Role</th>
+                    <th style={{ padding: "10px 8px", fontWeight: "600" }}>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {users.map((u, idx) => (
+                    <tr key={idx} style={{ borderBottom: "1px solid var(--border)" }}>
+                      <td style={{ padding: "10px 8px", color: "var(--text-primary)", fontWeight: "500" }}>
+                        {u.is_master ? "👑 " : ""}{u.username}
+                      </td>
+                      <td style={{ padding: "10px 8px" }}>
+                        <span style={{
+                          padding: "4px 8px", borderRadius: "4px", fontSize: "11px", fontWeight: "600",
+                          background: u.is_master ? "rgba(234,179,8,0.15)" : u.role === "admin" ? "var(--admin-light)" : "var(--accent-light)",
+                          color: u.is_master ? "#eab308" : u.role === "admin" ? "#60a5fa" : "var(--accent)"
+                        }}>
+                          {u.is_master ? "MASTER ADMIN" : u.role.toUpperCase()}
+                        </span>
+                      </td>
+                      <td style={{ padding: "10px 8px" }}>
+                        <span style={{
+                          padding: "4px 8px", borderRadius: "4px", fontSize: "11px", fontWeight: "600",
+                          background: u.is_blocked ? "var(--danger-light)" : "var(--success-light)",
+                          color: u.is_blocked ? "#ef4444" : "#10b981"
+                        }}>
+                          {u.is_blocked ? "BLOCKED" : "ACTIVE"}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Tab: Create Manager */}
+      {activeTab === "create" && (
+        <>
+          <h3 style={{ fontSize: "15px", fontWeight: "600", color: "var(--text-primary)", margin: "0 0 8px 0", display: "flex", alignItems: "center", gap: "8px" }}>
+            <span>🔑</span> Create Manager Account
+          </h3>
+          <p style={{ color: "var(--text-muted)", fontSize: "12px", marginBottom: "20px" }}>
+            Create credentials for bank managers directly. These accounts will have admin-level access to upload and manage the knowledge base. No customer account can be promoted to this level.
+          </p>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px", maxWidth: "400px" }}>
+            <div>
+              <label style={{ fontSize: "12px", fontWeight: "600", color: "var(--text-secondary)", marginBottom: "4px", display: "block" }}>Manager Username</label>
+              <input
+                type="text"
+                value={newUsername}
+                onChange={(e) => setNewUsername(e.target.value)}
+                placeholder="e.g. manager_jubileehills"
+                style={{
+                  width: "100%", padding: "10px 14px", borderRadius: "8px",
+                  border: "1px solid var(--border)", background: "var(--bg-secondary)",
+                  color: "var(--text-primary)", fontSize: "13px", outline: "none",
+                  boxSizing: "border-box"
+                }}
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: "12px", fontWeight: "600", color: "var(--text-secondary)", marginBottom: "4px", display: "block" }}>Manager Password</label>
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Min 8 chars, upper+lower+number+special"
+                style={{
+                  width: "100%", padding: "10px 14px", borderRadius: "8px",
+                  border: "1px solid var(--border)", background: "var(--bg-secondary)",
+                  color: "var(--text-primary)", fontSize: "13px", outline: "none",
+                  boxSizing: "border-box"
+                }}
+              />
+            </div>
+
+            {message && (
+              <div style={{
+                padding: "10px 14px", borderRadius: "8px", fontSize: "12px", fontWeight: "600",
+                background: message.type === "success" ? "var(--success-light)" : "var(--danger-light)",
+                color: message.type === "success" ? "#10b981" : "#ef4444",
+                border: `1px solid ${message.type === "success" ? "rgba(16,185,129,0.3)" : "rgba(239,68,68,0.3)"}`
+              }}>
+                {message.type === "success" ? "✅ " : "❌ "}{message.text}
+              </div>
+            )}
+
+            <button
+              onClick={createManager}
+              disabled={creating}
+              style={{
+                padding: "12px", borderRadius: "8px", border: "none", cursor: creating ? "not-allowed" : "pointer",
+                background: creating ? "var(--text-muted)" : "linear-gradient(135deg, #10b981, #059669)",
+                color: "white", fontSize: "13px", fontWeight: "700",
+                transition: "all 0.2s", opacity: creating ? 0.6 : 1
+              }}
+            >
+              {creating ? "Creating..." : "🔐 Create Manager Account"}
+            </button>
+          </div>
+        </>
       )}
     </div>
   );
