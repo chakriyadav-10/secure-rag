@@ -1,22 +1,21 @@
 <style>
-  body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a2e; line-height: 1.7; }
-  h1 { color: #0f3460; border-bottom: 3px solid #0f3460; padding-bottom: 8px; }
-  h2 { color: #16213e; border-bottom: 2px solid #e94560; padding-bottom: 5px; margin-top: 30px; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a2e; line-height: 1.7; font-size: 13px; }
+  h1 { color: #0f3460; border-bottom: 3px solid #0f3460; padding-bottom: 8px; page-break-before: always; }
+  h1:first-of-type { page-break-before: avoid; }
+  h2 { color: #16213e; border-bottom: 2px solid #e94560; padding-bottom: 5px; margin-top: 24px; }
   h3 { color: #533483; }
-  code { background: #f0f0f5; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
-  pre { background: #1a1a2e; color: #e0e0e0; padding: 16px; border-radius: 8px; overflow-x: auto; }
-  table { border-collapse: collapse; width: 100%; margin: 12px 0; }
-  th { background: #0f3460; color: white; padding: 10px; text-align: left; }
-  td { border: 1px solid #ddd; padding: 8px; }
+  code { background: #f0f0f5; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+  pre { background: #1a1a2e; color: #e0e0e0; padding: 14px; border-radius: 8px; overflow-x: auto; page-break-inside: avoid; font-size: 11px; }
+  table { border-collapse: collapse; width: 100%; margin: 10px 0; page-break-inside: avoid; font-size: 12px; }
+  th { background: #0f3460; color: white; padding: 8px; text-align: left; }
+  td { border: 1px solid #ddd; padding: 6px 8px; }
   tr:nth-child(even) { background: #f8f8fc; }
-  .box-green { background: #d4edda; border-left: 4px solid #28a745; padding: 12px; border-radius: 6px; margin: 12px 0; }
-  .box-blue { background: #d1ecf1; border-left: 4px solid #17a2b8; padding: 12px; border-radius: 6px; margin: 12px 0; }
-  .box-red { background: #f8d7da; border-left: 4px solid #dc3545; padding: 12px; border-radius: 6px; margin: 12px 0; }
-  .box-yellow { background: #fff3cd; border-left: 4px solid #ffc107; padding: 12px; border-radius: 6px; margin: 12px 0; }
-  .box-purple { background: #e8daef; border-left: 4px solid #8e44ad; padding: 12px; border-radius: 6px; margin: 12px 0; }
-  .diagram { background: #f4f6fa; border: 2px solid #0f3460; border-radius: 12px; padding: 20px; margin: 16px 0; font-family: monospace; white-space: pre; line-height: 1.5; font-size: 12px; }
-  .flow-arrow { color: #e94560; font-weight: bold; }
-  .highlight { background: #ffe082; padding: 2px 6px; border-radius: 3px; font-weight: 600; }
+  .box-green { background: #d4edda; border-left: 4px solid #28a745; padding: 10px; border-radius: 6px; margin: 10px 0; page-break-inside: avoid; }
+  .box-blue { background: #d1ecf1; border-left: 4px solid #17a2b8; padding: 10px; border-radius: 6px; margin: 10px 0; page-break-inside: avoid; }
+  .box-red { background: #f8d7da; border-left: 4px solid #dc3545; padding: 10px; border-radius: 6px; margin: 10px 0; page-break-inside: avoid; }
+  .box-yellow { background: #fff3cd; border-left: 4px solid #ffc107; padding: 10px; border-radius: 6px; margin: 10px 0; page-break-inside: avoid; }
+  .box-purple { background: #e8daef; border-left: 4px solid #8e44ad; padding: 10px; border-radius: 6px; margin: 10px 0; page-break-inside: avoid; }
+  .diagram { background: #f4f6fa; border: 2px solid #0f3460; border-radius: 10px; padding: 16px; margin: 12px 0; font-family: monospace; white-space: pre; line-height: 1.4; font-size: 10.5px; page-break-inside: avoid; }
 </style>
 
 # 🔐 Secure Enterprise Banking RAG
@@ -131,89 +130,46 @@ Unlike a standard RAG system, our pipeline implements **7 security layers** befo
 This is the most critical section. When a PDF is uploaded, it passes through **every security layer sequentially**:
 
 <div class="diagram">
-   PDF UPLOAD
+  PDF UPLOAD → STEP 1: TEXT EXTRACTION (PyPDF2)
        │
        ▼
-  ┌─────────────────────────────────────┐
-  │  STEP 1: TEXT EXTRACTION            │
-  │  PyPDF2 extracts raw text           │
-  │  from all pages                     │
-  └──────────────┬──────────────────────┘
-                 │
-                 ▼
-  ┌─────────────────────────────────────┐
-  │  STEP 2: THREAT DETECTION           │  ◀── security.py
-  │  RegEx scan for:                     │
-  │  • SQL Injection (DROP TABLE)        │
-  │  • XSS (&lt;script&gt;)              │
-  │  • Prompt Injection (ignore prev)    │
-  │  • Shell Injection (rm -rf)          │
-  │                                      │
-  │  🛑 If THREAT → Block user IP       │
-  │     + Log to SIEM audit              │
-  │     + REJECT document                │
-  └──────────────┬──────────────────────┘
-                 │ (clean)
-                 ▼
-  ┌─────────────────────────────────────┐
-  │  STEP 3: CONTENT SANITIZATION       │  ◀── security.py
-  │  Strip remaining risky patterns:     │
-  │  • HTML tags → removed               │
-  │  • Script blocks → removed           │
-  │  • SQL keywords → neutralized        │
-  └──────────────┬──────────────────────┘
-                 │
-                 ▼
-  ┌─────────────────────────────────────┐
-  │  STEP 4: PII DETECTION              │  ◀── pii_detector.py
-  │  Context-aware 25-char lookbehind:   │
-  │  • Account Numbers (9-18 digits)     │
-  │  • IFSC Codes (ABCD0XXXXXX)          │
-  │  • Phone Numbers (10 digits)         │
-  │  • Email Addresses (regex)           │
-  └──────────────┬──────────────────────┘
-                 │
-                 ▼
-  ┌─────────────────────────────────────┐
-  │  STEP 5: PSEUDONYMIZATION           │  ◀── pseudo.py
-  │  Replace PII with UUID tokens:       │
-  │  "123456789012" → "ACCOUNT_f7ce"     │
-  │                                      │
-  │  + AES-256 ENCRYPT the mapping       │
-  │    before storing in MongoDB         │
-  └──────────────┬──────────────────────┘
-                 │
-                 ▼
-  ┌─────────────────────────────────────┐
-  │  STEP 6: XAI CITATIONS              │  ◀── xai_citations.py
-  │  Tag each chunk with page number:    │
-  │  [Source: Page 1] ...text...         │
-  └──────────────┬──────────────────────┘
-                 │
-                 ▼
-  ┌─────────────────────────────────────┐
-  │  STEP 7: VECTORIZATION              │  ◀── rag.py
-  │  Gemini Embedding API converts       │
-  │  text → 3072-dimension vector        │
-  └──────────────┬──────────────────────┘
-                 │
-                 ▼
-  ┌─────────────────────────────────────┐
-  │  STEP 8: DIFFERENTIAL PRIVACY       │  ◀── dp_embedding.py
-  │  Add Laplacian noise to vector:      │
-  │  [0.1241, -0.5912, ...] →            │
-  │  [0.1275, -0.5878, ...]              │
-  └──────────────┬──────────────────────┘
-                 │
-                 ▼
-  ┌─────────────────────────────────────┐
-  │  STEP 9: SECURE STORAGE             │  ◀── db.py
-  │  Push to Pinecone with metadata:     │
-  │  { values: [...], metadata: {        │
-  │      text: "pseudonymized...",        │
-  │      owner_id: "sai"                 │
-  │  }}                                  │
-  └─────────────────────────────────────┘
+  STEP 2: THREAT DETECTION (security.py)
+  RegEx scan: SQLi, XSS, Prompt Injection, Shell Injection
+  🛑 If THREAT → Block user + Log SIEM + REJECT document
+       │ (clean)
+       ▼
+  STEP 3: CONTENT SANITIZATION (security.py)
+  Strip HTML tags, script blocks, SQL keywords
+       │
+       ▼
+  STEP 4: PII DETECTION (pii_detector.py)
+  25-char context lookbehind → Account, IFSC, Phone, Email
+       │
+       ▼
+  STEP 5: PSEUDONYMIZATION (pseudo.py)
+  "123456789012" → "ACCOUNT_f7ce"
+  + AES-256 ENCRYPT mapping → MongoDB
+</div>
+
+<div class="diagram">
+  (continued from Step 5)
+       │
+       ▼
+  STEP 6: XAI CITATIONS (xai_citations.py)
+  Tag chunk: [Source: Page 1] ...text...
+       │
+       ▼
+  STEP 7: VECTORIZATION (rag.py)
+  Gemini Embedding API → 3072-dimension vector
+       │
+       ▼
+  STEP 8: DIFFERENTIAL PRIVACY (dp_embedding.py)
+  Add Laplacian noise: [0.1241, -0.5912] → [0.1275, -0.5878]
+       │
+       ▼
+  STEP 9: SECURE STORAGE (db.py)
+  Push to Pinecone: { values: [...], metadata: {
+      text: "pseudonymized...", owner_id: "sai" }}
 </div>
 
 ---
@@ -334,69 +290,43 @@ DP-Noised Vector:  [0.1275, -0.5878, 0.9946, ..., -0.4378]  (3072 dimensions)
   USER ASKS: "What is the loan eligibility?"
        │
        ▼
-  ┌──────────────────────────────────┐
-  │  STEP 1: JWT AUTHENTICATION      │
-  │  Verify token → Extract user_id  │
-  └───────────────┬──────────────────┘
-                  │
-                  ▼
-  ┌──────────────────────────────────┐
-  │  STEP 2: RATE LIMITING           │
-  │  Check requests/minute limit      │
-  └───────────────┬──────────────────┘
-                  │
-                  ▼
-  ┌──────────────────────────────────┐
-  │  STEP 3: THREAT SCAN             │
-  │  Is the query itself malicious?   │
-  │  🛑 If yes → Block user          │
-  └───────────────┬──────────────────┘
-                  │
-                  ▼
-  ┌──────────────────────────────────┐
-  │  STEP 4: BANKING TOPIC FILTER    │
-  │  Is this a banking question?      │
-  │  ❌ "Tell me a joke" → Rejected  │
-  │  ✅ "Loan eligibility?" → Pass   │
-  └───────────────┬──────────────────┘
-                  │
-                  ▼
-  ┌──────────────────────────────────┐
-  │  STEP 5: VECTOR SEARCH           │  ◀── Pinecone
-  │  Convert query → 3072-dim vector  │
-  │  Search with owner_id filter:     │
-  │  filter={"owner_id": {"$in":      │
-  │    ["admin", "sai"]}}             │
-  │  Returns top-3 relevant chunks    │
-  └───────────────┬──────────────────┘
-                  │
-                  ▼
-  ┌──────────────────────────────────┐
-  │  STEP 6: LLM GENERATION          │  ◀── Gemini
-  │  Send context + question to       │
-  │  Gemini Flash Lite for answer     │
-  │  + XAI source citations           │
-  └───────────────┬──────────────────┘
-                  │
-                  ▼
-  ┌──────────────────────────────────┐
-  │  STEP 7: DE-PSEUDONYMIZATION     │  ◀── pseudo.py
-  │  If requester == document owner:  │
-  │    ACCOUNT_f7ce → 123456789012    │
-  │    (AES-256 decrypt mapping)      │
-  │  If requester != owner:           │
-  │    Keep ACCOUNT_f7ce (hidden)     │
-  └───────────────┬──────────────────┘
-                  │
-                  ▼
-  ┌──────────────────────────────────┐
-  │  STEP 8: SAVE TO CHAT HISTORY    │  ◀── MongoDB
-  │  { session_id, query, answer,     │
-  │    user, timestamp }              │
-  └──────────────────────────────────┘
-                  │
-                  ▼
-        USER SEES THE ANSWER
+  STEP 1: JWT AUTHENTICATION → Verify token, extract user_id
+       │
+       ▼
+  STEP 2: RATE LIMITING → Check requests/minute
+       │
+       ▼
+  STEP 3: THREAT SCAN → Is query malicious? 🛑 Block if yes
+       │
+       ▼
+  STEP 4: BANKING TOPIC FILTER
+  ❌ "Tell me a joke" → Rejected
+  ✅ "Loan eligibility?" → Passed
+</div>
+
+<div class="diagram">
+  (continued from Step 4)
+       │
+       ▼
+  STEP 5: VECTOR SEARCH (Pinecone)
+  Query → 3072-dim vector → filter: {"owner_id": {"$in": ["admin","sai"]}}
+  Returns top-3 relevant document chunks
+       │
+       ▼
+  STEP 6: LLM GENERATION (Gemini Flash Lite)
+  Context + question → AI answer + XAI citations
+       │
+       ▼
+  STEP 7: DE-PSEUDONYMIZATION (pseudo.py)
+  If requester == owner: ACCOUNT_f7ce → 123456789012 (AES decrypt)
+  If requester != owner: Keep ACCOUNT_f7ce (hidden)
+       │
+       ▼
+  STEP 8: SAVE TO CHAT HISTORY (MongoDB)
+  { session_id, query, answer, user, timestamp }
+       │
+       ▼
+  USER SEES THE ANSWER
 </div>
 
 ---
