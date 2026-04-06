@@ -86,3 +86,17 @@ If the original array point was: `[0.1241, -0.5912, 0.9912]`
 The Obscured output array is securely shifted to roughly: `[0.1275, -0.5878, 0.9946]`
 
 Because the vector shift is microscopic, the angle is preserved enough for the Cosine Similarity retrieval to operate perfectly. However, because the precise floating-point decimal was permanently destroyed, the mathematical map to revert the coordinate back into English words is irrevocably broken.
+
+---
+
+## 5. Backend Architecture Mapping: Modular Code Logic
+
+When data moves through the Python backend, it is handled structurally by the following scripts. You must know what these files do for the processing pipeline:
+
+- `main.py`: The Central Orchestrator (FastAPI). It manages routing, threads chat histories utilizing MongoDB global session mapping, and controls API endpoints like `/query` and `/register`.
+- `security.py`: The Threat Engine. It implements the RegEx heuristics specifically targeting malicious Code/Prompt Injections, stripping structural payloads like `DROP TABLE` or LLM Jailbreaks before any AI interacts with them.
+- `pii_detector.py`: The Context-Aware Extractor. It utilizes the 25-character coordinate mathematical lookbehinds to effectively deduce identical string inputs (e.g., differentiating Indian Phone numbers from Bank Accounts based on regional context structures).
+- `pseudo.py`: The UUID Swapper. Executes structural string alterations, exchanging real detected text with irreversible Universal Unique Identifiers and seamlessly persisting mapping indexes securely over MongoDB.
+- `rag.py`: The LLM Interfacer. Modulates chunk splitting, calculates the 384-dimensional strings (Neural Vectorization), connects to GenAI for the actual prompt generation, and forces the model to append Explainable AI (XAI) metadata citations natively.
+- `dp_embedding.py`: The Privacy Cryptographic Layer. Houses the absolute Laplacian Noise distribution mathematics, calculating precise vector shifts per dimension securely before pushing into the `Pinecone` geometric universe.
+- `presentation_demo.py`: The Bypass Academic Sandbox. Used mathematically strictly during the Defense presentation to bypass the complex network protocols, demonstrating only the visual RegEx and pipeline swaps cleanly on the terminal UI.
