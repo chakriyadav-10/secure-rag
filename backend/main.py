@@ -6,7 +6,7 @@ from PyPDF2 import PdfReader
 from auth import register_user, authenticate, blocked_users, create_token, verify_token, block_user, load_blocked_users, get_users_collection
 from security import detect_threat, sanitize
 from pii_detector import detect_pii
-from pseudo import pseudonymize
+from pseudo import pseudonymize, depseudonymize
 from rag import store, retrieve, generate
 from config import BLOCK_THRESHOLD, MASTER_ADMIN_USER, MASTER_ADMIN_PASS
 
@@ -174,6 +174,9 @@ def query(q: str, token: str, session_id: str):
         context = retrieve(q, owner_ids)
         safe_context = [sanitize(c) for c in context]
         ans, source = generate(q, safe_context)
+        
+        # Controlled De-pseudonymization: only the real document owner sees real PII
+        ans = depseudonymize(ans, user["sub"])
         
         # Save explicitly to MongoDB Chats database
         from auth import get_users_collection
