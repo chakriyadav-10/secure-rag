@@ -155,6 +155,8 @@ function UserManagement({ token }) {
               <label style={{ fontSize: "12px", fontWeight: "600", color: "var(--text-secondary)", marginBottom: "4px", display: "block" }}>Manager Username</label>
               <input
                 type="text"
+                name="new_manager_user"
+                autoComplete="off"
                 value={newUsername}
                 onChange={(e) => setNewUsername(e.target.value)}
                 placeholder="e.g. manager_jubileehills"
@@ -170,6 +172,8 @@ function UserManagement({ token }) {
               <label style={{ fontSize: "12px", fontWeight: "600", color: "var(--text-secondary)", marginBottom: "4px", display: "block" }}>Manager Password</label>
               <input
                 type="password"
+                name="new_manager_pass"
+                autoComplete="new-password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="Min 8 chars, upper+lower+number+special"
