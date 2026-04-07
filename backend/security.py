@@ -31,21 +31,21 @@ PROMPT_INJECTION_PATTERNS = [
     r"\bDAN mode\b",
     r"\bdeveloper mode\b",
     r"\bbypass (?:security|filter|restriction|rule)\b",
-    r"\bnew instruction\b",
-    r"\boverride (?:instruction|rule|system|setting)\b",
     r"\bexfiltrate\b",
     r"\bsend (?:to|data to|results to) (?:http|https|ftp|attacker|external)\b",
 ]
 
 def detect_threat(text):
-    """Returns (is_threat, threat_type) tuple."""
+    """Returns (is_threat, threat_type, match_snippet) tuple."""
     for p in CODE_INJECTION_PATTERNS:
-        if re.search(p, text, re.IGNORECASE):
-            return True, "code_injection"
+        match = re.search(p, text, re.IGNORECASE)
+        if match:
+            return True, "code_injection", match.group()
     for p in PROMPT_INJECTION_PATTERNS:
-        if re.search(p, text, re.IGNORECASE):
-            return True, "prompt_injection"
-    return False, None
+        match = re.search(p, text, re.IGNORECASE)
+        if match:
+            return True, "prompt_injection", match.group()
+    return False, None, None
 
 def sanitize(text):
     """Clean known malicious patterns from content before storing/displaying."""

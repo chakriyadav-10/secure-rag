@@ -36,8 +36,11 @@ def is_banking_query(text):
 
 app = FastAPI()
 
+APP_VERSION = "2.0.2-Hardened"
+
 @app.on_event("startup")
 def startup_event():
+    print(f"🚀 Secure RAG Backend {APP_VERSION} starting up...")
     try:
         register_user(MASTER_ADMIN_USER, MASTER_ADMIN_PASS, "admin", skip_checks=True)
         load_blocked_users() # LIMITATION FIX: Persistent Blocks
@@ -64,7 +67,6 @@ def check_username(username: str):
 @app.post("/register")
 def register(username: str, password: str, role: str = "user"):
     # LIMITATION FIX: Hardcode role to "user" to prevent Mass Assignment (IDOR) attacks.
-    # Even if a hacker passes ?role=admin, the backend completely ignores it.
     success, msg = register_user(username, password, "user")
     if not success:
         return JSONResponse(status_code=400, content={"error": msg})
@@ -106,8 +108,8 @@ async def upload(file: UploadFile, token: str):
     else:
         content = (await file.read()).decode('utf-8', errors='ignore')
 
-    # 🚨 Threat Detection (Heuristic)
-    is_threat, threat_type = detect_threat(content)
+    # 🚨 Threat Detection (Heuristic Engine)
+    is_threat, threat_type, match_snippet = detect_threat(content)
     
     # 🧹 Sanitization
     clean = sanitize(content)
@@ -118,20 +120,19 @@ async def upload(file: UploadFile, token: str):
     # 🔐 Pseudonymization
     pseudo_text = pseudonymize(clean, pii, owner_id=owner_id)
 
-    # 🛡️ Semantic Safety Scoring (Verification)
-    # We now use the semantic scorer to verify heuristic prompt injection flags in large docs.
-    safety_score, safety_reasoning = await evaluate_safety(pseudo_text[:5000])
+    # 🛡️ Semantic Safety Scoring (Verification Override)
+    # Increased context to 7000 chars to handle longer multi-page banking docs.
+    safety_score, safety_reasoning = await evaluate_safety(pseudo_text[:7000])
 
     if is_threat:
         # If heuristic says prompt injection, but BERT/LLM says it's safe (>0.75), allow it.
-        # Threshold calibrated to 0.75 to handle technical bank policies safely.
         if threat_type == "prompt_injection" and safety_score > 0.75:
-            log_event(user["sub"], "UPLOAD_FP_OVERRIDE", f"Heuristic flagged, but Semantic Scorer approved (Score: {safety_score})", status="ALLOWED")
+            log_event(user["sub"], "UPLOAD_FP_OVERRIDE", f"Heuristic flagged '{match_snippet}', but Semantic Scorer approved (Score: {safety_score})", status="ALLOWED")
         else:
             if user["sub"] != MASTER_ADMIN_USER:
                 block_user(user["sub"])
-            msg = "🔴 Prompt injection detected in document. User blocked." if threat_type == "prompt_injection" else "🔴 Malicious code detected in document. User blocked."
-            log_event(user["sub"], "UPLOAD_THREAT", f"Type: {threat_type} | File: {file.filename} | Safety Score: {safety_score}", status="BLOCKED")
+            msg = f"🔴 Security: Potential {threat_type.replace('_', ' ')} detected. Your upload has been restricted."
+            log_event(user["sub"], "UPLOAD_THREAT", f"Type: {threat_type} | Match: {match_snippet} | Score: {safety_score}", status="BLOCKED")
             return {"error": msg}
 
     if safety_score < 0.7:
