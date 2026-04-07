@@ -213,3 +213,21 @@ SIEM Audit Logs & \ding{55} & \ding{55} & \checkmark \\
 \end{tabular}
 \end{table}
 
+\subsection{User Management Panel (Master Admin Only)}
+
+The User Management panel is exclusively available to the Master Admin. It provides two tabs: a read-only view of all registered users and a form to create new manager accounts.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{user_management.png}
+\caption{Registered Users tab --- The Master Admin can view all registered users with their username, role (color-coded: gold for Master Admin, blue for Admin, green for User), and account status. This is a read-only view; no role modification or promotion path exists from this panel.}
+\label{fig:user_mgmt}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{create_manager.png}
+\caption{Create Manager Account tab --- The Master Admin directly provisions admin credentials by specifying a Manager Username and Manager Password. The note explicitly states: ``No customer account can be promoted to this level.'' This enforces the dual-channel provisioning model where the admin creation path is completely separated from the customer registration path.}
+\label{fig:create_mgr}
+\end{figure}
+

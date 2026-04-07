@@ -2,7 +2,14 @@
 
 \section{High-Level Architecture}
 
-The Secure RAG system follows a three-tier architecture comprising a React frontend, a FastAPI backend, and two cloud databases (MongoDB Atlas and Pinecone). Figure~\ref{fig:arch} presents the overall system architecture.
+The Secure RAG system follows a three-tier architecture comprising a React frontend, a FastAPI backend, and two cloud databases (MongoDB Atlas and Pinecone). Figure~\ref{fig:pipeline_arch} presents the complete Secure RAG pipeline architecture showing both the ingestion and retrieval flows, while Figure~\ref{fig:arch} provides a simplified component view.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{pipeline_architecture.png}
+\caption{Secure RAG Pipeline Architecture --- The left side (blue) shows the Secure Ingestion Pipeline: raw documents pass through authentication, content sanitization, PII masking, embedding generation with dp-Gaussian noise obfuscation, and secure storage. The right side (green) shows the Safe Retrieval Pipeline: user queries undergo vector similarity search, heuristic keyword guardrails, semantic safety scoring, context building with strict system prompting, LLM inference, and output de-anonymization before delivering the safe final response.}
+\label{fig:pipeline_arch}
+\end{figure}
 
 \begin{figure}[H]
 \centering
