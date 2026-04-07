@@ -1,5 +1,34 @@
 \chapter{Results and Analysis}
 
+\section{Execution Environment Matrix}
+
+Table~\ref{tab:env} details the development and deployment environment used for all experiments.
+
+\begin{table}[H]
+\centering
+\caption{Execution environment matrix}
+\label{tab:env}
+\begin{tabular}{ll}
+\toprule
+\textbf{Parameter} & \textbf{Specification} \\
+\midrule
+Development OS & macOS (Apple Silicon M-series) \\
+Python Version & 3.11+ \\
+Node.js Version & 18+ \\
+Backend Framework & FastAPI 0.100+ \\
+Frontend Framework & React 18 + Vite 5 \\
+Embedding Model & Gemini text-embedding-004 (3072-dim) \\
+LLM Model & Gemini 2.0 Flash Lite \\
+Vector Database & Pinecone Serverless (us-east-1, cosine) \\
+Document Database & MongoDB Atlas M0 (AWS us-east-1) \\
+Backend Hosting & Render (Free tier, Docker) \\
+Frontend Hosting & Vercel (Free tier, Edge network) \\
+Encryption & AES-256-CBC via \texttt{cryptography} library \\
+Password Hashing & Bcrypt with 12 salt rounds \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \section{Attack Scenario Testing}
 
 The system was tested against eleven distinct attack categories. Table~\ref{tab:attack_results} summarizes the results.

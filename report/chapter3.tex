@@ -236,3 +236,44 @@ Pinecone & Vector (Serverless) & 3072-dim DP-noised embeddings + metadata \\
 \end{table}
 
 MongoDB answers \textit{``Who are you?''} --- handling authentication, chat history, and encrypted mappings. Pinecone answers \textit{``What do you mean?''} --- finding semantically similar documents via cosine similarity.
+
+\section{Threat Model and Mitigation Profile}
+
+Table~\ref{tab:threat_model} maps each identified threat vector to its attack surface, the specific defense mechanism deployed, and the pipeline stage where the mitigation occurs.
+
+\begin{table}[H]
+\centering
+\caption{Threat model mitigation profile}
+\label{tab:threat_model}
+\small
+\begin{tabular}{llll}
+\toprule
+\textbf{Threat Vector} & \textbf{Attack Surface} & \textbf{Mitigation} & \textbf{Stage} \\
+\midrule
+Prompt Injection & User query / PDF text & Regex pattern matching & Upload Step 2 \\
+SQL Injection & User query / PDF text & Regex + sanitization & Upload Step 2--3 \\
+XSS Attack & PDF embedded scripts & HTML tag stripping & Upload Step 3 \\
+Shell Injection & PDF embedded commands & Regex detection & Upload Step 2 \\
+PII Leakage & Document text in vectors & Pseudonymization & Upload Step 5 \\
+Embedding Inversion & Stored vectors in Pinecone & Laplacian DP noise & Upload Step 8 \\
+Cross-Tenant Access & Vector search results & owner\_id metadata filter & Query Step 5 \\
+Brute Force & Login / query endpoints & Rate limiting + blocking & Query Step 2 \\
+Privilege Escalation & Customer self-promotion & No promotion path (RBAC) & Auth layer \\
+DB Admin Snooping & MongoDB PII mappings & AES-256-CBC encryption & Storage layer \\
+Context Hijacking & LLM instruction override & Topic filtering + guardrails & Query Step 4 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Security Dimensions}
+
+The system addresses three fundamental security dimensions:
+
+\begin{enumerate}
+    \item \textbf{Confidentiality}: PII is pseudonymized before vectorization and AES-256 encrypted at rest. Multi-tenant isolation ensures documents are invisible across user boundaries.
+    
+    \item \textbf{Integrity}: Threat detection and content sanitization prevent malicious payload injection into the knowledge base. SIEM audit logging provides tamper-evident records of all security events.
+    
+    \item \textbf{Availability}: Rate limiting prevents denial-of-service through query flooding. Persistent blocking quarantines repeat offenders while allowing legitimate users uninterrupted access.
+\end{enumerate}
+
