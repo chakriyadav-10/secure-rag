@@ -8,3 +8,11 @@ openai
 faiss-cpu
 numpy
 PyPDF2
+python-dotenv
+google-genai
+google-generativeai
+pymongo
+pinecone-client
+httpx
+transformers
+torch
