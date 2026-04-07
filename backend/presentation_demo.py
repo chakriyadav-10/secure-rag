@@ -52,21 +52,8 @@ def extract_pdf_text(filepath):
         if t: text += t + "\n"
     return text.strip()
 
-def detect_threat_native(text):
-    inquisitive_markers = ["what", "how", "where", "how much", "rate", "interest", "balance", "who", "when", "tell me", "can you", "show me"]
-    PROMPT_INJECTION_PATTERNS = [r"ignore (all|previous|prior) instructions", r"jailbreak", r"you are now a", r"system command"]
-    CODE_INJECTION_PATTERNS = [r"<script.*?>", r"DROP\s+TABLE", r"rm\s+-rf"]
-    for p in PROMPT_INJECTION_PATTERNS:
-        if re.search(p, text, re.IGNORECASE): return True, "prompt_injection"
-    for p in CODE_INJECTION_PATTERNS:
-        if re.search(p, text, re.IGNORECASE): return True, "code_injection"
-    return False, "none"
-
-def sanitize_native(text):
-    text = re.sub(r"(?is)<script.*?>.*?</script>", "[REDACTED SCRIPT]", text)
-    text = re.sub(r"(?i)(DROP\s+TABLE|UNION\s+SELECT)", "[REDACTED SQL]", text)
-    text = re.sub(r"(?i)(rm\s+-rf|os\.system|subprocess|eval\(|exec\()", "[REDACTED SHELL]", text)
-    return text
+# Import from centralized security module
+from security import detect_threat, sanitize
 
 def detect_pii_native(text):
     pii = {"account": [], "phone": [], "ifsc": [], "email": []}
@@ -103,9 +90,13 @@ async def run_demo(pdf_path):
 
     print_header("2. Threat Detection (Heuristic)")
     print(f"{YELLOW}🚨 Scanning for malicious patterns (SQLi, XSS, Jailbreaks)...{RESET}\n")
-    is_threat, threat_type = detect_threat_native(sample)
-    if is_threat:
-        print(f"   Heuristic Threat: {RED}{BOLD}Detected [{threat_type.upper()}]{RESET}")
+    
+    # Use centralized production security engine
+    is_heuristic_threat, threat_type = detect_threat(sample)
+    
+    if is_heuristic_threat:
+        print(f"   Heuristic Threat: {YELLOW}{BOLD}Flagged [{threat_type.upper()}]{RESET}")
+        print(f"   {CYAN}▸{RESET} Status: {MAGENTA}Awaiting Semantic Verification...{RESET}")
     else:
         print(f"   Heuristic Threat: {GREEN}{BOLD}Not Found ✅{RESET}")
     time.sleep(1)
@@ -123,19 +114,33 @@ async def run_demo(pdf_path):
     print(f"   [B] {BOLD}LLM Policy Reasoning:{RESET}\n       {CYAN}\"{reasoning}\"{RESET}")
     time.sleep(0.5)
     
-    # Final Composite
-    color = GREEN if score >= 0.7 else RED
-    status = "ALLOWED ✅" if score >= 0.7 else "BLOCKED 🛑"
-    print(f"\n   {BOLD}Final Safety Confidence Score:{RESET} {color}{BOLD}{score:.4f} ({status}){RESET}")
+    # Logic: Verify-then-Block (Production Standard)
+    final_status = "ALLOWED ✅"
+    color = GREEN
     
-    if score < 0.7:
-        print(f"\n{RED}{BOLD}🚨 CRITICAL: Document rejected by Semantic Scorer. System hardening activated.{RESET}")
+    if is_heuristic_threat:
+        # If heuristic flagged but semantic score is high, it's a False Positive
+        if score > 0.75:
+            print(f"\n   {BLUE}{BOLD}🛡️  HEURISTIC VETO:{RESET} {GREEN}Semantic scorer identified document as a False Positive.{RESET}")
+            print(f"      Status: {GREEN}Heuristic flag manually overridden.{RESET}")
+        else:
+            final_status = "BLOCKED 🛑"
+            color = RED
+    elif score < 0.7:
+        final_status = "BLOCKED 🛑"
+        color = RED
+
+    print(f"\n   {BOLD}Final Safety Confidence Score:{RESET} {color}{BOLD}{score:.4f} ({final_status}){RESET}")
+    
+    if final_status == "BLOCKED 🛑":
+        print(f"\n{RED}{BOLD}🚨 CRITICAL: Document rejected. System hardening activated.{RESET}")
         print(f"{YELLOW}⚠️  Demo bypass: continuing to show sanitization to demonstrate pipeline flow...{RESET}")
+    
     time.sleep(2)
 
     print_header("3. Content Sanitization")
     print(f"{YELLOW}🧹 Neutralizing active code & adversarial prompts...{RESET}\n")
-    clean = sanitize_native(sample)
+    clean = sanitize(sample)
     print(f"{GREEN}Sanitized Snippet:{RESET}")
     print(f'{CYAN}"""\n{clean.strip()[:300]}...\n"""{RESET}\n')
     time.sleep(1)
@@ -187,11 +192,14 @@ async def run_query_demo():
         return
 
     print_header("2. Heuristic Threat Detection")
-    is_threat, threat_type = detect_threat_native(q)
-    if is_threat:
-        print(f"   {RED}Threat Detected: {threat_type.upper()} 🛑{RESET}")
+    # Use centralized production security engine
+    is_heuristic_threat, threat_type = detect_threat(q)
+    
+    if is_heuristic_threat:
+        print(f"   Heuristic Threat: {YELLOW}{BOLD}Flagged [{threat_type.upper()}]{RESET}")
+        print(f"   {CYAN}▸{RESET} Status: {MAGENTA}Awaiting Semantic Verification...{RESET}")
     else:
-        print(f"   {GREEN}Heuristic Scan: No malicious patterns found ✅{RESET}")
+        print(f"   Heuristic Threat: {GREEN}{BOLD}No malicious patterns found ✅{RESET}")
     time.sleep(1)
 
     print_header("3. High-Fidelity Semantic Safety Analysis")
@@ -207,11 +215,24 @@ async def run_query_demo():
     print(f"   [B] {BOLD}LLM Policy Reasoning:{RESET}\n       {CYAN}\"{reasoning}\"{RESET}")
     time.sleep(0.5)
     
-    # Final Composite
-    color = GREEN if score >= 0.7 else RED
-    status = "ALLOWED ✅" if score >= 0.7 else "BLOCKED 🛑"
-    print(f"\n   {BOLD}Final Safety Confidence Score:{RESET} {color}{BOLD}{score:.4f} ({status}){RESET}")
-    if score < 0.7:
+    # Logic: Verify-then-Block (Production Standard)
+    final_status = "ALLOWED ✅"
+    color = GREEN
+    
+    if is_heuristic_threat:
+        # If heuristic flagged but semantic score is high, it's a False Positive
+        if score > 0.75:
+            print(f"\n   {BLUE}{BOLD}🛡️  HEURISTIC VETO:{RESET} {GREEN}Semantic scorer identified query as a False Positive.{RESET}")
+            print(f"      Status: {GREEN}Heuristic flag manually overridden.{RESET}")
+        else:
+            final_status = "BLOCKED 🛑"
+            color = RED
+    elif score < 0.7:
+        final_status = "BLOCKED 🛑"
+        color = RED
+
+    print(f"\n   {BOLD}Final Safety Confidence Score:{RESET} {color}{BOLD}{score:.4f} ({final_status}){RESET}")
+    if final_status == "BLOCKED 🛑":
          print(f"\n{RED}{BOLD}🚨 ACCESS DENIED: Query failed semantic safety check.{RESET}")
     else:
          print(f"\n{GREEN}{BOLD}🔓 ACCESS GRANTED: Query passed all security check layers.{RESET}")

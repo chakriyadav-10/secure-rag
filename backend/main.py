@@ -106,18 +106,9 @@ async def upload(file: UploadFile, token: str):
     else:
         content = (await file.read()).decode('utf-8', errors='ignore')
 
-    # 🚨 Threat Detection
+    # 🚨 Threat Detection (Heuristic)
     is_threat, threat_type = detect_threat(content)
-    if is_threat:
-        if user["sub"] != MASTER_ADMIN_USER: # LIMITATION FIX: Master admin immunity
-            block_user(user["sub"])
-            
-        msg = "🔴 Prompt injection detected in document. User blocked." if threat_type == "prompt_injection" else "🔴 Malicious code detected in document. User blocked."
-        
-        # Limitation Fix: Audit Logging
-        log_event(user["sub"], "UPLOAD_THREAT", f"Type: {threat_type} | File: {file.filename}", status="BLOCKED")
-        return {"error": msg}
-
+    
     # 🧹 Sanitization
     clean = sanitize(content)
 
@@ -127,8 +118,22 @@ async def upload(file: UploadFile, token: str):
     # 🔐 Pseudonymization
     pseudo_text = pseudonymize(clean, pii, owner_id=owner_id)
 
-    # 🛡️ Semantic Safety Scoring
-    safety_score, safety_reasoning = await evaluate_safety(pseudo_text[:5000]) # Scan beginning of file
+    # 🛡️ Semantic Safety Scoring (Verification)
+    # We now use the semantic scorer to verify heuristic prompt injection flags in large docs.
+    safety_score, safety_reasoning = await evaluate_safety(pseudo_text[:5000])
+
+    if is_threat:
+        # If heuristic says prompt injection, but BERT/LLM says it's safe (>0.75), allow it.
+        # Threshold calibrated to 0.75 to handle technical bank policies safely.
+        if threat_type == "prompt_injection" and safety_score > 0.75:
+            log_event(user["sub"], "UPLOAD_FP_OVERRIDE", f"Heuristic flagged, but Semantic Scorer approved (Score: {safety_score})", status="ALLOWED")
+        else:
+            if user["sub"] != MASTER_ADMIN_USER:
+                block_user(user["sub"])
+            msg = "🔴 Prompt injection detected in document. User blocked." if threat_type == "prompt_injection" else "🔴 Malicious code detected in document. User blocked."
+            log_event(user["sub"], "UPLOAD_THREAT", f"Type: {threat_type} | File: {file.filename} | Safety Score: {safety_score}", status="BLOCKED")
+            return {"error": msg}
+
     if safety_score < 0.7:
         if user["sub"] != MASTER_ADMIN_USER:
             block_user(user["sub"])
