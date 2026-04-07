@@ -1,0 +1,178 @@
+\chapter{System Architecture}
+
+\section{High-Level Architecture}
+
+The Secure RAG system follows a three-tier architecture comprising a React frontend, a FastAPI backend, and two cloud databases (MongoDB Atlas and Pinecone). Figure~\ref{fig:arch} presents the overall system architecture.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=1.5cm]
+    % Frontend
+    \node (frontend) [process, fill=cyan!15, minimum width=3.5cm, minimum height=2.5cm, align=center] {
+        \textbf{Frontend}\\
+        \footnotesize React/Vite\\
+        \footnotesize (Vercel)\\[2pt]
+        \tiny Login $\bullet$ Chat UI\\
+        \tiny Upload $\bullet$ Admin Panel
+    };
+    
+    % Backend
+    \node (backend) [process, fill=orange!10, minimum width=8cm, minimum height=2.5cm, right=2.5cm of frontend, align=center] {
+        \textbf{Backend --- FastAPI (Render)}
+    };
+    
+    % Backend internal modules
+    \node (auth) [process, fill=green!15, minimum width=2cm, minimum height=0.8cm] at ([yshift=0.4cm]backend.center) {\footnotesize Auth Layer};
+    \node (sec) [security, minimum width=2cm, minimum height=0.8cm, right=0.3cm of auth] {\footnotesize Security Engine};
+    \node (rag) [process, fill=purple!15, minimum width=2cm, minimum height=0.8cm, right=0.3cm of sec] {\footnotesize RAG Engine};
+    
+    % Databases
+    \node (mongo) [database, fill=green!15, below=2cm of auth] {\footnotesize MongoDB};
+    \node (pseudo) [database, fill=purple!15, below=2cm of sec] {\footnotesize AES-256};
+    \node (pine) [database, fill=cyan!15, below=2cm of rag] {\footnotesize Pinecone};
+    
+    % Arrows
+    \draw [arrow, thick, blue] (frontend.east) -- node[above]{\footnotesize REST API} (backend.west);
+    \draw [arrow] (auth.south) -- (mongo.north);
+    \draw [arrow] (sec.south) -- (pseudo.north);
+    \draw [arrow] (rag.south) -- (pine.north);
+    
+    % Labels under databases
+    \node[below=0.1cm of mongo, font=\tiny] {Users, Chats, Audit Logs};
+    \node[below=0.1cm of pseudo, font=\tiny] {PII Mappings};
+    \node[below=0.1cm of pine, font=\tiny] {Document Vectors};
+\end{tikzpicture}
+\caption{High-level system architecture of Secure RAG}
+\label{fig:arch}
+\end{figure}
+
+\section{Role-Based Access Control (RBAC)}
+
+The system implements a three-tier RBAC model with strict separation between provisioning channels, as illustrated in Figure~\ref{fig:rbac}.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=1.2cm]
+    % Channel 1
+    \node (env) [process, fill=yellow!20, minimum width=4cm] {\textbf{Environment Variable}};
+    \node (master) [process, fill=yellow!30, below=0.8cm of env, minimum width=4cm] {\textbf{Master Admin} \\ \footnotesize (Bank Head / CTO)};
+    \node (admin) [process, fill=blue!15, below=0.8cm of master, minimum width=4cm] {\textbf{Admin (Manager)} \\ \footnotesize (Branch Manager)};
+    
+    \draw [arrow, thick] (env) -- node[right, font=\footnotesize]{Hardcoded} (master);
+    \draw [arrow, thick, blue] (master) -- node[right, font=\footnotesize]{Creates credentials} (admin);
+    
+    % Channel 2
+    \node (public) [process, fill=green!15, right=3.5cm of env, minimum width=4cm] {\textbf{Public Registration}};
+    \node (user) [process, fill=green!20, below=0.8cm of public, minimum width=4cm] {\textbf{Normal User} \\ \footnotesize (Bank Customer)};
+    
+    \draw [arrow, thick] (public) -- node[right, font=\footnotesize]{Self-service} (user);
+    
+    % Barrier
+    \draw [ultra thick, red, dashed] ([xshift=1.7cm]admin.north east) -- ([xshift=1.7cm]admin.south east) node[midway, right, font=\footnotesize\color{red}] {NO PATH};
+    
+\end{tikzpicture}
+\caption{Dual-channel RBAC provisioning model}
+\label{fig:rbac}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\caption{RBAC role permissions}
+\label{tab:rbac}
+\begin{tabular}{llll}
+\toprule
+\textbf{Role} & \textbf{Provisioning} & \textbf{Permissions} \\
+\midrule
+Master Admin & Environment variable & Full control, create managers, audit logs \\
+Admin (Manager) & Created by Master Admin & Upload policies, manage knowledge base \\
+Customer & Self-registration & Query AI assistant, upload personal docs \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The Master Admin credentials are provisioned via server-level environment variables (\texttt{MASTER\_ADMIN\_USER}, \texttt{MASTER\_ADMIN\_PASS}) and never stored in the database, preventing privilege escalation through database manipulation.
+
+\section{Document Upload Pipeline}
+
+The document upload pipeline is the core security mechanism of the system. Every PDF uploaded passes through \textbf{nine sequential security stages} before being stored. Figure~\ref{fig:upload_pipeline} illustrates this pipeline.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=0.6cm]
+    \node (s1) [process, fill=cyan!15, minimum width=10cm] {\textbf{Step 1}: Text Extraction (PyPDF2)};
+    \node (s2) [security, below=of s1, minimum width=10cm] {\textbf{Step 2}: Threat Detection --- SQLi, XSS, Prompt Injection (security.py)};
+    \node (s3) [security, below=of s2, minimum width=10cm, fill=orange!10] {\textbf{Step 3}: Content Sanitization --- Strip HTML, neutralize SQL (security.py)};
+    \node (s4) [process, fill=yellow!15, below=of s3, minimum width=10cm] {\textbf{Step 4}: PII Detection --- 25-char context lookbehind (pii\_detector.py)};
+    \node (s5) [process, fill=purple!15, below=of s4, minimum width=10cm] {\textbf{Step 5}: Pseudonymization + AES-256 Encryption (pseudo.py)};
+    \node (s6) [process, fill=cyan!10, below=of s5, minimum width=10cm] {\textbf{Step 6}: XAI Citations --- Page-level source tagging (xai\_citations.py)};
+    \node (s7) [process, fill=green!15, below=of s6, minimum width=10cm] {\textbf{Step 7}: Vectorization --- Gemini Embedding API $\rightarrow$ 3072-dim (rag.py)};
+    \node (s8) [process, fill=purple!15, below=of s7, minimum width=10cm] {\textbf{Step 8}: Differential Privacy --- Laplacian noise injection (dp\_embedding.py)};
+    \node (s9) [process, fill=green!20, below=of s8, minimum width=10cm] {\textbf{Step 9}: Secure Storage --- Pinecone with owner\_id metadata (db.py)};
+    
+    % Arrows
+    \foreach \i/\j in {s1/s2, s2/s3, s3/s4, s4/s5, s5/s6, s6/s7, s7/s8, s8/s9} {
+        \draw [arrow, thick, red!70] (\i.south) -- (\j.north);
+    }
+    
+    % Block arrow from Step 2
+    \node (block) [security, fill=red!30, right=1cm of s2, minimum width=2cm] {\footnotesize BLOCK \& LOG};
+    \draw [arrow, thick, red] (s2.east) -- node[above, font=\tiny]{Threat!} (block.west);
+\end{tikzpicture}
+\caption{9-step secure document upload pipeline}
+\label{fig:upload_pipeline}
+\end{figure}
+
+\section{Query Pipeline}
+
+When a user submits a query, it passes through an \textbf{8-step pipeline} before the answer is returned. Figure~\ref{fig:query_pipeline} shows this flow.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=0.6cm]
+    \node (q0) [process, fill=blue!10, minimum width=10cm] {\textbf{User Query}: ``What is the transfer amount?''};
+    \node (q1) [process, fill=green!15, below=of q0, minimum width=10cm] {\textbf{Step 1}: JWT Authentication --- Verify token, extract user\_id};
+    \node (q2) [process, fill=cyan!10, below=of q1, minimum width=10cm] {\textbf{Step 2}: Rate Limiting --- Check requests/minute per user};
+    \node (q3) [security, below=of q2, minimum width=10cm] {\textbf{Step 3}: Threat Scan --- Is query itself malicious?};
+    \node (q4) [process, fill=yellow!15, below=of q3, minimum width=10cm] {\textbf{Step 4}: Banking Topic Filter --- Reject non-banking queries};
+    \node (q5) [process, fill=cyan!15, below=of q4, minimum width=10cm] {\textbf{Step 5}: Vector Search --- Cosine similarity with owner\_id filter (Pinecone)};
+    \node (q6) [process, fill=green!15, below=of q5, minimum width=10cm] {\textbf{Step 6}: LLM Generation --- Gemini Flash Lite + XAI citations};
+    \node (q7) [process, fill=purple!15, below=of q6, minimum width=10cm] {\textbf{Step 7}: De-pseudonymization --- AES decrypt for owner only (pseudo.py)};
+    \node (q8) [process, fill=green!20, below=of q7, minimum width=10cm] {\textbf{Step 8}: Save to Chat History --- MongoDB with session\_id};
+    
+    \foreach \i/\j in {q0/q1, q1/q2, q2/q3, q3/q4, q4/q5, q5/q6, q6/q7, q7/q8} {
+        \draw [arrow, thick, blue!70] (\i.south) -- (\j.north);
+    }
+\end{tikzpicture}
+\caption{8-step secure query pipeline}
+\label{fig:query_pipeline}
+\end{figure}
+
+\section{Multi-Tenant Document Isolation}
+
+Document isolation is enforced at the Pinecone query layer through metadata filtering. When user ``sai'' submits a query, the system constructs a filter that includes only documents owned by ``sai'' and the shared admin knowledge base:
+
+\begin{equation}
+\text{filter} = \{\texttt{owner\_id} : \{\texttt{\$in} : [\texttt{``admin''}, \texttt{``sai''}]\}\}
+\end{equation}
+
+This ensures that cosine similarity is computed \textit{only} against authorized vectors. Documents owned by other users are mathematically excluded from the search space.
+
+\section{Database Architecture}
+
+The system uses two complementary databases, each serving a distinct purpose:
+
+\begin{table}[H]
+\centering
+\caption{Database role separation}
+\label{tab:db}
+\begin{tabular}{lll}
+\toprule
+\textbf{Database} & \textbf{Type} & \textbf{Stored Data} \\
+\midrule
+MongoDB Atlas & Document (NoSQL) & Users, chats, PII mappings, audit logs \\
+Pinecone & Vector (Serverless) & 3072-dim DP-noised embeddings + metadata \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+MongoDB answers \textit{``Who are you?''} --- handling authentication, chat history, and encrypted mappings. Pinecone answers \textit{``What do you mean?''} --- finding semantically similar documents via cosine similarity.

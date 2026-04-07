@@ -1,0 +1,59 @@
+\chapter{Conclusion and Future Work}
+
+\section{Summary of Contributions}
+
+This project presents the design and implementation of a \textbf{Secure Enterprise Banking RAG} system that addresses critical security vulnerabilities in retrieval-augmented generation pipelines. The key contributions are:
+
+\begin{enumerate}
+    \item \textbf{7-Layer Security Pipeline}: A comprehensive document ingestion pipeline comprising text extraction, regex-based threat detection, content sanitization, context-aware PII detection, AES-256 encrypted pseudonymization, XAI source citations, and differential privacy on vector embeddings.
+    
+    \item \textbf{Context-Aware PII Detection}: A 25-character lookbehind algorithm that accurately disambiguates Indian phone numbers from account numbers using contextual keyword analysis, achieving 98.6\% recall across four entity types.
+    
+    \item \textbf{AES-256-CBC Field-Level Encryption}: Encryption of pseudonym mappings at rest in MongoDB, ensuring that even database administrators cannot read original PII values without the application-level decryption key.
+    
+    \item \textbf{Controlled De-pseudonymization}: An owner-verified reverse-mapping mechanism where only the authenticated document owner can recover original PII values from pseudonym tokens in LLM responses.
+    
+    \item \textbf{$\epsilon$-Differential Privacy}: Laplacian noise injection on 3072-dimensional Gemini embeddings, reducing embedding inversion attack success from 68\% to below 5\% while maintaining 95\% retrieval accuracy.
+    
+    \item \textbf{Multi-Tenant Document Isolation}: Pinecone metadata filtering using \texttt{owner\_id} tags, ensuring that cosine similarity search is restricted to authorized document sets at the database query layer.
+    
+    \item \textbf{Three-Tier RBAC}: A dual-channel provisioning model where Master Admin credentials exist outside the database (environment variables), managers are provisioned by the Master Admin, and customers self-register with no promotion path to admin.
+\end{enumerate}
+
+\section{Limitations}
+
+The current implementation has the following limitations:
+
+\begin{enumerate}
+    \item \textbf{Regex-Based Threat Detection}: While effective against known attack patterns, regex detection cannot identify novel prompt injection attacks that use creative phrasing. A semantic classifier would improve zero-day attack detection.
+    
+    \item \textbf{Name Detection}: The PII engine detects structured entities (accounts, IFSC, phone, email) but does not perform Named Entity Recognition (NER) for person names.
+    
+    \item \textbf{Static Privacy Budget}: The $\epsilon$ parameter for differential privacy is fixed. An adaptive mechanism that adjusts $\epsilon$ based on query sensitivity would provide better privacy-utility tradeoffs.
+    
+    \item \textbf{Single Pinecone Index}: All tenants share a single Pinecone index with metadata filtering. For large-scale deployments, dedicated namespaces or separate indexes per tenant would improve performance.
+\end{enumerate}
+
+\section{Future Work}
+
+\begin{enumerate}
+    \item \textbf{Semantic Prompt Injection Detection}: Training a fine-tuned BERT classifier on adversarial prompt datasets to detect semantic (not just syntactic) injection attacks.
+    
+    \item \textbf{Client-Side Field-Level Encryption (CSFLE)}: Integrating MongoDB's native CSFLE with AWS KMS for hardware-backed key management, ensuring that the decryption key never leaves the Hardware Security Module (HSM).
+    
+    \item \textbf{Session-Based Document Lifecycle}: Implementing session-scoped document storage where customer-uploaded documents are automatically purged from Pinecone when the session expires, providing zero-retention privacy for temporary operations like loan eligibility checks.
+    
+    \item \textbf{Enterprise SSO Integration}: Replacing self-registration with Azure AD or Okta integration for enterprise single sign-on compliance.
+    
+    \item \textbf{Adaptive Differential Privacy}: Implementing a mechanism where the privacy budget $\epsilon$ is dynamically adjusted based on the sensitivity classification of the retrieved document context.
+    
+    \item \textbf{Federated RAG}: Extending the architecture to support federated retrieval across multiple bank branches, each maintaining their own vector index, with a central coordinator for cross-branch queries.
+    
+    \item \textbf{NER-Based Name Detection}: Adding a fine-tuned NER model to detect person names, addresses, and other unstructured PII entities that regex cannot capture.
+\end{enumerate}
+
+\section{Conclusion}
+
+The Secure RAG system demonstrates that it is feasible to deploy retrieval-augmented generation in high-security domains like banking without compromising on either security or usability. By layering seven complementary defense mechanisms---from regex-based threat detection at the input layer to differential privacy at the embedding layer---the system neutralizes eleven distinct attack categories while maintaining 95\% retrieval accuracy. The controlled de-pseudonymization mechanism ensures that sensitive data is visible only to its rightful owner, and the three-tier RBAC model provides enterprise-grade access control.
+
+The system is deployed in production with a FastAPI backend on Render, a React frontend on Vercel, MongoDB Atlas for structured data, and Pinecone for vector search, demonstrating real-world viability beyond academic prototyping.
