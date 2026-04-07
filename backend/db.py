@@ -1,4 +1,5 @@
 import uuid
+from pseudo import aes_encrypt, aes_decrypt
 from pinecone import Pinecone, ServerlessSpec
 from config import PINECONE_API_KEY, PINECONE_ENV, PINECONE_INDEX_NAME
 
@@ -28,9 +29,19 @@ index = pc.Index(PINECONE_INDEX_NAME)
 
 def add_doc(vec, text, owner_id):
     doc_id = str(uuid.uuid4())
+    # 🔐 Encrypt the text chunk before storing in Pinecone (Zero-Trust Metadata)
+    encrypted_text = aes_encrypt(text)
     index.upsert(
         vectors=[
-            {"id": doc_id, "values": vec, "metadata": {"text": text, "owner_id": owner_id}}
+            {
+                "id": doc_id, 
+                "values": vec, 
+                "metadata": {
+                    "text": encrypted_text, 
+                    "owner_id": owner_id,
+                    "is_encrypted": True # Flag for future-proofing
+                }
+            }
         ]
     )
 
@@ -43,9 +54,21 @@ def search(vec, owner_ids):
         include_metadata=True,
         filter={"owner_id": {"$in": owner_ids}}
     )
-    # Only return chunks that are genuinely relevant to the query
-    return [
-        match['metadata']['text']
-        for match in response['matches']
-        if match['score'] >= RELEVANCE_THRESHOLD
-    ]
+    
+    results = []
+    for match in response['matches']:
+        if match['score'] >= RELEVANCE_THRESHOLD:
+            raw_text = match['metadata']['text']
+            # Fallback logic: identify if it is ciphertext or legacy plain-text
+            # Encrypted text is usually much longer than raw snippets in our bank doc
+            if match['metadata'].get("is_encrypted") or len(raw_text) > 40:
+                try:
+                    decrypted = aes_decrypt(raw_text)
+                    results.append(decrypted)
+                except Exception:
+                    # Not actually encrypted, handle as legacy
+                    results.append(raw_text)
+            else:
+                results.append(raw_text)
+                
+    return results
