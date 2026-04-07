@@ -1,4 +1,6 @@
 from fastapi import FastAPI, UploadFile, HTTPException
+import uvicorn
+import os
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import io, re
@@ -301,3 +303,7 @@ def create_manager(username: str, password: str, token: str):
     
     log_event(user["sub"], "MANAGER_CREATED", f"Created manager account: {username}")
     return {"msg": f"Manager account '{username}' created successfully."}
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8000))
+    print(f"📡 Backend v2.0.2 listening on 0.0.0.0:{port}")
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)
