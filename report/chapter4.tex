@@ -12,7 +12,7 @@ This text contains five PII entities that must be protected before vectorization
 
 \section{Threat Detection Engine}
 
-The threat detection engine (\texttt{security.py}) scans all input text against two categories of attack patterns using precompiled regular expressions.
+The Security Validation Engine scans all input text against two categories of attack patterns using precompiled regular expressions.
 
 \subsection{Attack Pattern Categories}
 
@@ -123,7 +123,7 @@ For example: $\texttt{123456789012} \rightarrow \texttt{ACCOUNT\_f7ce}$
 
 \subsection{AES-256-CBC Encryption of Mappings}
 
-The mapping between tokens and original values is encrypted before storage in MongoDB using AES-256 in CBC mode.
+The mapping between tokens and original values is encrypted before storage in a document database using AES-256 in CBC mode.
 
 \begin{definition}[AES-256-CBC Encryption]
 Given plaintext $P$, a 256-bit key $K$, and a random 128-bit initialization vector $IV$:
@@ -141,7 +141,7 @@ K = \text{SHA-256}(\texttt{SECRET\_KEY})
 
 The key is derived from the environment variable \texttt{SECRET\_KEY} using SHA-256, producing exactly 32 bytes (256 bits). The key never appears in the database.
 
-\textbf{Storage format} in MongoDB:
+\textbf{Storage format} in the document database:
 \begin{equation}
 \text{stored\_value} = \text{Base64}(IV \| \text{Ciphertext})
 \end{equation}
@@ -172,7 +172,7 @@ Each word $w$ is mapped to an integer ID: $w \mapsto \text{id} \in \{0, 1, \ldot
 
 \subsection{Embedding Lookup}
 
-Each token ID is mapped to a $d$-dimensional vector (where $d = 3072$ for Gemini Embedding) through an embedding matrix $\mathbf{E} \in \mathbb{R}^{|V| \times d}$:
+Each token ID is mapped to a $d$-dimensional vector (where $d = 3072$ for the embedding model) through an embedding matrix $\mathbf{E} \in \mathbb{R}^{|V| \times d}$:
 
 \begin{equation}
 \mathbf{e}_i = \mathbf{E}[\text{token\_id}_i] \in \mathbb{R}^{3072}
@@ -180,7 +180,7 @@ Each token ID is mapped to a $d$-dimensional vector (where $d = 3072$ for Gemini
 
 \subsection{Self-Attention Mechanism}
 
-The Gemini transformer processes the token embeddings using the \textbf{Scaled Dot-Product Self-Attention} mechanism:
+The transformer processes the token embeddings using the \textbf{Scaled Dot-Product Self-Attention} mechanism:
 
 \begin{equation}
 \boxed{\text{Attention}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) = \text{softmax}\left(\frac{\mathbf{Q}\mathbf{K}^T}{\sqrt{d_k}}\right) \mathbf{V}}
@@ -216,7 +216,7 @@ where each head computes:
 After all transformer layers, the model produces a single 3072-dimensional vector $\mathbf{v} \in \mathbb{R}^{3072}$ representing the entire document's semantic meaning:
 
 \begin{equation}
-\mathbf{v} = \text{GeminiEmbed}(\text{``Account Number: ACCOUNT\_f7ce ...''})\in \mathbb{R}^{3072}
+\mathbf{v} = \text{EmbedModel}(\text{``Account Number: ACCOUNT\_f7ce ...''})\in \mathbb{R}^{3072}
 \end{equation}
 
 \section{Differential Privacy: Laplacian Noise Injection}
@@ -253,7 +253,7 @@ For each dimension $i$ of the embedding vector:
 
 \begin{table}[H]
 \centering
-\caption{Differential privacy parameters}
+\caption{Differential privacy and system parameters}
 \label{tab:dp_params}
 \begin{tabular}{ccl}
 \toprule
@@ -261,9 +261,11 @@ For each dimension $i$ of the embedding vector:
 \midrule
 Privacy budget & $\epsilon$ & Lower $\Rightarrow$ more privacy (tunable) \\
 Sensitivity & $\Delta f$ & Maximum embedding shift per data point \\
-Scale & $b = \Delta f / \epsilon$ & Controls noise magnitude \\
-Center & $\mu$ & 0 (noise is symmetric) \\
-Dimensions & $d$ & 3072 (Gemini embedding size) \\
+Backend Hosting & & Distributed Cloud Infrastructure \\
+Frontend Hosting & & Edge Deployment Platform \\
+Vector Database & & High-Performance Vector Database \\
+Document Database & & Distributed NoSQL Persistence Layer \\
+Dimensions & $d$ & 3072 (Embedding size) \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -319,146 +321,4 @@ Only chunks with cosine similarity above the threshold $\tau = 0.5$ are returned
 \begin{equation}
 \text{relevant\_chunks} = \{d_j \mid \cos(\mathbf{q}, \mathbf{d}_j) \geq \tau,\ \text{owner\_id}(d_j) \in \text{allowed}\}
 \end{equation}
-
-\section{Backend File Structure}
-
-Table~\ref{tab:files} maps each backend file to its role in the security pipeline.
-
-\begin{table}[H]
-\centering
-\caption{Backend file reference}
-\label{tab:files}
-\begin{tabular}{lll}
-\toprule
-\textbf{File} & \textbf{Purpose} & \textbf{Security Role} \\
-\midrule
-\texttt{main.py} & FastAPI orchestrator & Rate limiting, de-pseudonymization \\
-\texttt{auth.py} & Registration, JWT, bcrypt & Authentication \\
-\texttt{security.py} & Regex threat detection & Blocks SQLi, XSS, Prompt Injection \\
-\texttt{pii\_detector.py} & PII entity extraction & Account, IFSC, Phone, Email \\
-\texttt{pseudo.py} & AES-256 pseudonymization & PII protection in MongoDB \\
-\texttt{rag.py} & Embedding + LLM generation & Gemini API interface \\
-\texttt{dp\_embedding.py} & Laplacian noise injection & Embedding inversion defense \\
-\texttt{db.py} & Pinecone CRUD & Multi-tenant vector isolation \\
-\texttt{config.py} & Environment variable loader & AES key, API keys \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\section{Core Models and Frameworks Utilized}
-
-Table~\ref{tab:frameworks} lists all models, frameworks, and cloud services integrated into the system.
-
-\begin{table}[H]
-\centering
-\caption{Core models and frameworks}
-\label{tab:frameworks}
-\begin{tabular}{lll}
-\toprule
-\textbf{Component} & \textbf{Technology} & \textbf{Purpose} \\
-\midrule
-Backend Framework & FastAPI (Python) & REST API with async support \\
-Frontend Framework & React + Vite & Single-page application \\
-Embedding Model & Gemini text-embedding-004 & 3072-dim document vectorization \\
-LLM (Generation) & Gemini Flash Lite & Context-grounded answer generation \\
-Vector Database & Pinecone (Serverless) & Cosine similarity search \\
-Document Database & MongoDB Atlas & Users, chats, PII mappings \\
-Password Hashing & Bcrypt (12 rounds) & One-way password storage \\
-Token Management & PyJWT + HMAC-SHA256 & Stateless authentication \\
-Encryption & AES-256-CBC (cryptography lib) & PII mapping encryption \\
-PDF Parsing & PyPDF2 & Text extraction from PDFs \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\section{SIEM Audit Logs Integration}
-
-Security Information and Event Management (SIEM) audit logging provides tamper-evident records of all security-relevant events across the system.
-
-\subsection{Audit Event Model}
-
-Each security event is captured with the following structured schema:
-
-\begin{lstlisting}[caption={SIEM audit log event schema}, label={lst:siem}]
-{
-  "timestamp": "2026-04-07T10:23:45.123Z",
-  "event_type": "THREAT_BLOCKED",
-  "severity": "HIGH",
-  "user": "attacker123",
-  "ip_address": "192.168.1.105",
-  "details": "Prompt injection detected: ignore previous instructions",
-  "action_taken": "User blocked, document rejected"
-}
-\end{lstlisting}
-
-\subsection{Logging Points in the Pipeline}
-
-\begin{table}[H]
-\centering
-\caption{SIEM audit logging points}
-\label{tab:siem_points}
-\begin{tabular}{lll}
-\toprule
-\textbf{Event} & \textbf{Trigger} & \textbf{Severity} \\
-\midrule
-USER\_LOGIN & Successful authentication & INFO \\
-LOGIN\_FAILED & Invalid credentials & WARNING \\
-THREAT\_BLOCKED & Regex threat detection match & HIGH \\
-PII\_DETECTED & PII entity found in document & INFO \\
-DOC\_UPLOADED & Document successfully processed & INFO \\
-RATE\_LIMIT\_HIT & User exceeded request quota & WARNING \\
-USER\_BLOCKED & Persistent block applied & CRITICAL \\
-MANAGER\_CREATED & Master Admin created admin & INFO \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\subsection{Security and Compliance Benefits}
-
-The SIEM integration provides:
-\begin{itemize}
-    \item \textbf{Incident Traceability}: Every blocked attack is timestamped with the user identity, IP address, and the exact payload that triggered the block.
-    \item \textbf{Forensic Analysis}: Security teams can reconstruct attack timelines from the audit trail.
-    \item \textbf{Regulatory Compliance}: The logging structure aligns with SOC~2 Type~II and ISO~27001 audit requirements for financial services.
-    \item \textbf{Real-Time Dashboard}: The Master Admin can view all security events through the SIEM Audit Logs panel in the frontend.
-\end{itemize}
-
-\section{Engineering Considerations and Deployment Notes}
-
-\subsection{Deployment Architecture}
-
-The system is deployed across three cloud platforms:
-
-\begin{table}[H]
-\centering
-\caption{Deployment configuration}
-\label{tab:deploy}
-\begin{tabular}{llll}
-\toprule
-\textbf{Component} & \textbf{Platform} & \textbf{URL Pattern} & \textbf{Notes} \\
-\midrule
-Frontend & Vercel & \texttt{*.vercel.app} & Auto-deploys from GitHub \\
-Backend & Render & \texttt{*.onrender.com} & Docker-based, auto-scaling \\
-MongoDB & Atlas & \texttt{*.mongodb.net} & M0 free tier, encrypted at rest \\
-Pinecone & Serverless & \texttt{*.pinecone.io} & us-east-1, cosine metric \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\subsection{Environment Variables and Key Management}
-
-All sensitive credentials are stored as environment variables on the deployment platform, never in source code:
-
-\begin{itemize}
-    \item \texttt{SECRET\_KEY}: JWT signing and AES key derivation seed
-    \item \texttt{AES\_ENCRYPTION\_KEY}: Fallback encryption key for PII mappings
-    \item \texttt{MONGO\_URI}: MongoDB Atlas connection string with TLS
-    \item \texttt{PINECONE\_API\_KEY}: Pinecone vector database authentication
-    \item \texttt{GEMINI\_API\_KEY}: Google Gemini Embedding and LLM API
-    \item \texttt{MASTER\_ADMIN\_USER / PASS}: Infrastructure-level admin credentials
-\end{itemize}
-
-\subsection{CORS and API Security}
-
-Cross-Origin Resource Sharing (CORS) is configured to allow only the Vercel frontend domain, preventing unauthorized API access from external origins. All API endpoints require JWT bearer tokens except \texttt{/register}, \texttt{/login}, and \texttt{/check-username}.
 

@@ -1,4 +1,6 @@
-\documentclass[12pt,a4paper]{report}
+\documentclass[11pt,a4paper]{report}
+
+\usepackage[T1]{fontenc}
 
 \usepackage{amsthm,amssymb,amsmath,mathrsfs,setspace}
 \usepackage{pifont}  % For \ding checkmarks and crosses
@@ -154,7 +156,7 @@ Retrieval-Augmented Generation (RAG) has emerged as a powerful paradigm for enha
 
 This report presents the design and implementation of a \textbf{Secure Enterprise Banking RAG} system that defends against two major attack vectors: \textbf{Prompt Injection} (where adversaries manipulate LLM behavior through crafted inputs) and \textbf{Embedding Inversion} (where attackers reverse-engineer vector embeddings to reconstruct original text). Our system implements a multi-layered security pipeline comprising seven distinct defense mechanisms: (1)~JWT-based authentication with Role-Based Access Control, (2)~request rate limiting, (3)~regex-based threat detection for SQL injection, XSS, and prompt manipulation attacks, (4)~content sanitization, (5)~context-aware PII detection using a 25-character lookbehind algorithm, (6)~AES-256-CBC encrypted pseudonymization with controlled de-pseudonymization, and (7)~$\epsilon$-differential privacy through Laplacian noise injection on 3072-dimensional vector embeddings.
 
-The architecture employs a FastAPI backend, React frontend, MongoDB Atlas for structured data, Pinecone for vector similarity search, and the Gemini Embedding API for document vectorization. Multi-tenant document isolation is enforced at the vector database query layer through \texttt{owner\_id} metadata filtering. Experimental results demonstrate that the system successfully neutralizes eleven distinct attack categories while maintaining retrieval accuracy above 95\%.
+The architecture employs a robust asynchronous backend service layer, a responsive client interface, a distributed NoSQL database for structured data persistence, a vector database for similarity search, and an embedding API for document vectorization. Multi-tenant document isolation is enforced at the vector database query layer through \texttt{owner\_id} metadata filtering. Experimental results demonstrate that the system successfully neutralizes eleven distinct attack categories while maintaining retrieval accuracy above 95\%.
 
 \vspace{0.5cm}
 \noindent\textbf{Keywords}: Retrieval-Augmented Generation (RAG), Large Language Models, Prompt Injection, Embedding Inversion, Differential Privacy, AES-256 Encryption, PII Pseudonymization, Multi-Tenant Isolation.

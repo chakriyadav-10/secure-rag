@@ -2,12 +2,121 @@
 
 \section{High-Level Architecture}
 
-The Secure RAG system follows a three-tier architecture comprising a React frontend, a FastAPI backend, and two cloud databases (MongoDB Atlas and Pinecone). Figure~\ref{fig:pipeline_arch} presents the complete Secure RAG pipeline architecture showing both the ingestion and retrieval flows, while Figure~\ref{fig:arch} provides a simplified component view.
+The Secure RAG system follows a modular three-tier architecture comprising a User Interface Layer, a Service Orchestration Layer, and a distributed persistence tier utilizing both document-oriented and vector-spatial storage engines. Figure~\ref{fig:pipeline_arch} presents the complete Secure RAG pipeline architecture showing both the ingestion and retrieval flows, while Figure~\ref{fig:arch} provides a simplified component view.
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=\textwidth]{pipeline_architecture.png}
-\caption{Secure RAG Pipeline Architecture --- The left side (blue) shows the Secure Ingestion Pipeline: raw documents pass through authentication, content sanitization, PII masking, embedding generation with dp-Gaussian noise obfuscation, and secure storage. The right side (green) shows the Safe Retrieval Pipeline: user queries undergo vector similarity search, heuristic keyword guardrails, semantic safety scoring, context building with strict system prompting, LLM inference, and output de-anonymization before delivering the safe final response.}
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[node distance=1.2cm, every node/.style={font=\footnotesize\sffamily, align=center}]
+    % Define styles correctly using \tikzset
+    \tikzset{
+        box/.style={rectangle, rounded corners, draw=black!70, middle color=white, inner sep=6pt, minimum height=1cm, minimum width=2.8cm, align=center},
+        ingest_box/.style={box, fill=blue!5, draw=blue!50},
+        retrieve_box/.style={box, fill=green!5, draw=green!50},
+        sec_box/.style={box, fill=red!5, draw=red!50},
+        db/.style={cylinder, draw=black!70, fill=yellow!5, shape border rotate=90, aspect=0.25, minimum height=1.4cm, minimum width=1.1cm, align=center},
+        label_circle/.style={circle, fill=blue!60, text=white, inner sep=1pt, font=\tiny\bfseries},
+        label_circle_green/.style={circle, fill=green!60, text=white, inner sep=1pt, font=\tiny\bfseries}
+    }
+
+    % --- SECURE INGESTION PIPELINE (BLUE) ---
+    \begin{scope}[draw=blue!50, dashed, fill=blue!2, rounded corners]
+        \draw (-0.5, 4.5) rectangle (6, -4.5);
+        \node[blue!80!black, font=\small\bfseries] at (2.75, 4.2) {SECURE INGESTION PIPELINE};
+    \end{scope}
+
+    % A: Raw Document
+    \node (A) [ingest_box] at (1.5, 3) {\textbf{Banking}\\\textbf{Document (PDF)}};
+    \node[label_circle, above left=0.1cm of A.north west] {A};
+
+    % B: JWT Auth
+    \node (B) [ingest_box, right=0.8cm of A] {\textbf{JWT Auth \&}\\\textbf{RBAC Engine}};
+    \node[label_circle, above left=0.1cm of B.north west] {B};
+
+    % C: Threat Detection
+    \node (C) [sec_box, below=0.8cm of B] {\textbf{Regex Threat}\\\textbf{Detection}};
+    \node[label_circle, above left=0.1cm of C.north west] {C};
+
+    % D: PII Mapping
+    \node (D) [db, left=0.8cm of C] {\textbf{Encrypted}\\\textbf{PII Store}};
+    \node[label_circle, above left=0.1cm of D.north west] {D};
+
+    % E: Embedding
+    \node (E) [ingest_box, below=0.8cm of C] {\textbf{Gemini text-}\\\textbf{embedding-004}};
+    \node[label_circle, above left=0.1cm of E.north west] {E};
+
+    % F: Differential Privacy
+    \node (F) [sec_box, right=0.6cm of E, minimum width=2cm] {\textbf{$\epsilon$-DP Noise}\\\textbf{Injection}};
+    \node[label_circle, above left=0.1cm of F.north west] {F};
+
+    % G: Vector Persistence
+    \node (G) [db, below=1cm of E] {\textbf{Vector Persistence}\\\textbf{Layer}};
+    \node[label_circle, above left=0.1cm of G.north west] {G};
+
+    % Connections Ingestion
+    \draw[arrow] (A) -- (B);
+    \draw[arrow] (B) -- node[right, font=\tiny]{Auth OK} (C);
+    \draw[arrow] (C) -- node[above, font=\tiny]{Mask PII} (D);
+    \draw[arrow] (C) -- node[right, font=\tiny]{Safe Text} (E);
+    \draw[arrow] (E) -- (F);
+    \draw[arrow] (E) -- (G);
+    \draw[arrow] (F) |- (G);
+
+    % --- SECURE RETRIEVAL PIPELINE (GREEN) ---
+    \begin{scope}[draw=green!50, dashed, fill=green!2, rounded corners]
+        \draw (7, 4.5) rectangle (13.5, -4.5);
+        \node[green!60!black, font=\small\bfseries] at (10.25, 4.2) {SECURE RETRIEVAL PIPELINE};
+    \end{scope}
+
+    % H: Query
+    \node (H) [retrieve_box] at (8.5, 3) {\textbf{User Financial}\\\textbf{Query}};
+    \node[label_circle_green, above left=0.1cm of H.north west] {H};
+
+    % I: Similarity Search
+    \node (I) [retrieve_box, below=0.8cm of H] {\textbf{Cosine Similarity}\\\textbf{Match ($\tau \ge 0.5$)}};
+    \node[label_circle_green, above left=0.1cm of I.north west] {I};
+
+    % J: Guardrails
+    \node (J) [sec_box, right=0.6cm of I, minimum width=2.4cm] {\textbf{Safety Verification}\\\textbf{Guardrails}};
+    \node[label_circle_green, above left=0.1cm of J.north west] {J};
+
+    % K: BERT Classifier
+    \node (K) [sec_box, below=0.8cm of J, minimum width=2.4cm] {\textbf{BERT-based}\\\textbf{Semantic Classifier}};
+    \node[label_circle_green, above left=0.1cm of K.north west] {K};
+
+    % L: Context Orchestrator
+    \node (L) [retrieve_box, below=1.8cm of I] {\textbf{Secure Context}\\\textbf{Integration}};
+    \node[label_circle_green, above left=0.1cm of L.north west] {L};
+
+    % M: Gemini Inference
+    \node (M) [retrieve_box, below=0.8cm of L] {\textbf{Gemini 2.0 Flash}\\\textbf{Lite Inference}};
+    \node[label_circle_green, above left=0.1cm of M.north west] {M};
+
+    % N: De-pseudonymization
+    \node (N) [sec_box, right=0.8cm of M] {\textbf{De-pseudonymization}\\\textbf{Layer}};
+    \node[label_circle_green, above left=0.1cm of N.north west] {N};
+
+    % O: Final Response
+    \node (O) [ingest_box, fill=white, draw=black!80, right=0.8cm of N] {\textbf{Hardened Financial}\\\textbf{Advisory}};
+    \node[label_circle_green, above left=0.1cm of O.north west] {O};
+
+    % Connections Retrieval
+    \draw[arrow] (H) -- (I);
+    \draw[arrow] (I) -- node[above, font=\tiny]{Top K} (J);
+    \draw[arrow] (J) -- (K);
+    \draw[arrow] (I) -- (L);
+    \draw[arrow] (K) |- (L);
+    \draw[arrow] (L) -- (M);
+    \draw[arrow] (M) -- (N);
+    \draw[arrow] (N) -- (O);
+
+    % --- CROSS-PIPELINE CONNECTIONS ---
+    \draw[arrow, dashed, draw=black!40] (G.east) -- node[above, font=\tiny, rotate=0, sloped]{Retrieve Vector} (I.west);
+    \draw[arrow, dashed, draw=red!40] (D.south) -- +(0,-1) -| node[above, pos=0.2, font=\tiny]{Reverse UUID Mapping} (N.south);
+
+\end{tikzpicture}
+}
+\caption{Project-specific Secure RAG pipeline architecture showing the integration of Gemini embeddings, $\epsilon$-differential privacy, and the \textbf{BERT-based semantic classification} security tier.}
 \label{fig:pipeline_arch}
 \end{figure}
 
@@ -17,13 +126,13 @@ The Secure RAG system follows a three-tier architecture comprising a React front
 \begin{tikzpicture}[node distance=1.5cm, every node/.style={font=\small}]
     % Frontend box
     \node (frontend) [rectangle, rounded corners, draw=blue!70, fill=cyan!10, minimum width=3cm, minimum height=3cm, align=center] {
-        \textbf{Frontend}\\[3pt]
-        \footnotesize React / Vite\\
-        \footnotesize (Vercel)\\[4pt]
-        \scriptsize $\bullet$ Login Page\\
-        \scriptsize $\bullet$ Chat UI\\
-        \scriptsize $\bullet$ Upload Portal\\
-        \scriptsize $\bullet$ Admin Panel
+        \textbf{Interface}\\[3pt]
+        \footnotesize Application Layer\\
+        \footnotesize (Client-Side)\\[4pt]
+        \scriptsize $\bullet$ Authentication\\
+        \scriptsize $\bullet$ Chat Interface\\
+        \scriptsize $\bullet$ Ingestion Portal\\
+        \scriptsize $\bullet$ Administrative Panel
     };
     
     % Arrow
@@ -32,7 +141,7 @@ The Secure RAG system follows a three-tier architecture comprising a React front
     % Backend outer box
     \node (backbox) [rectangle, rounded corners, draw=orange!70, fill=orange!5, 
           minimum width=9cm, minimum height=5cm, right=3cm of frontend] {};
-    \node[above] at (backbox.north) {\textbf{Backend --- FastAPI (Render)}};
+    \node[above] at (backbox.north) {\textbf{Service Orchestration \& Logic Layer}};
     
     % Backend modules (top row)
     \node (auth) [rectangle, rounded corners, draw=green!70, fill=green!15, 
@@ -128,11 +237,11 @@ The document upload pipeline is the core security mechanism of the system. Every
 \centering
 \resizebox{0.9\textwidth}{!}{%
 \begin{tikzpicture}[node distance=0.5cm, every node/.style={font=\small}]
-    \node (s1) [process, fill=cyan!15, minimum width=11cm, minimum height=0.8cm] {\textbf{Step 1}: Text Extraction --- PyPDF2 extracts raw text from PDF pages};
-    \node (s2) [security, below=of s1, minimum width=11cm, minimum height=0.8cm] {\textbf{Step 2}: Threat Detection --- SQLi, XSS, Prompt Injection, Shell (security.py)};
-    \node (s3) [process, fill=orange!10, below=of s2, minimum width=11cm, minimum height=0.8cm, draw=orange!70] {\textbf{Step 3}: Content Sanitization --- Strip HTML tags, neutralize SQL (security.py)};
-    \node (s4) [process, fill=yellow!15, below=of s3, minimum width=11cm, minimum height=0.8cm] {\textbf{Step 4}: PII Detection --- 25-char context lookbehind (pii\_detector.py)};
-    \node (s5) [process, fill=purple!15, below=of s4, minimum width=11cm, minimum height=0.8cm] {\textbf{Step 5}: Pseudonymization + AES-256 Encryption (pseudo.py)};
+    \node (s1) [process, fill=cyan!15, minimum width=11cm, minimum height=0.8cm] {\textbf{Step 1}: Text Extraction --- Robust PDF parsing and serialization};
+    \node (s2) [security, below=of s1, minimum width=11cm, minimum height=0.8cm] {\textbf{Step 2}: Threat Detection --- Analysis of SQLi, XSS, Prompt Injection, and Shell patterns};
+    \node (s3) [process, fill=orange!10, below=of s2, minimum width=11cm, minimum height=0.8cm, draw=orange!70] {\textbf{Step 3}: Content Sanitization --- Tag stripping and keyword neutralization};
+    \node (s4) [process, fill=yellow!15, below=of s3, minimum width=11cm, minimum height=0.8cm] {\textbf{Step 4}: PII Detection --- Context-aware sensitive entity identification};
+    \node (s5) [process, fill=purple!15, below=of s4, minimum width=11cm, minimum height=0.8cm] {\textbf{Step 5}: Pseudonymization --- Token replacement and AES-256 field encryption};
     
     \foreach \i/\j in {s1/s2, s2/s3, s3/s4, s4/s5} {
         \draw [->, thick, red!70] (\i.south) -- (\j.north);
@@ -151,10 +260,10 @@ The document upload pipeline is the core security mechanism of the system. Every
 \centering
 \resizebox{0.9\textwidth}{!}{%
 \begin{tikzpicture}[node distance=0.5cm, every node/.style={font=\small}]
-    \node (s6) [process, fill=cyan!10, minimum width=11cm, minimum height=0.8cm] {\textbf{Step 6}: XAI Citations --- Page-level source tagging (xai\_citations.py)};
-    \node (s7) [process, fill=green!15, below=of s6, minimum width=11cm, minimum height=0.8cm] {\textbf{Step 7}: Vectorization --- Gemini Embedding API $\rightarrow$ 3072 dimensions (rag.py)};
-    \node (s8) [process, fill=purple!15, below=of s7, minimum width=11cm, minimum height=0.8cm] {\textbf{Step 8}: Differential Privacy --- Laplacian noise injection (dp\_embedding.py)};
-    \node (s9) [process, fill=green!20, below=of s8, minimum width=11cm, minimum height=0.8cm] {\textbf{Step 9}: Secure Storage --- Pinecone with owner\_id metadata (db.py)};
+    \node (s6) [process, fill=cyan!10, minimum width=11cm, minimum height=0.8cm] {\textbf{Step 6}: Source Attribution --- Page-level citation tagging};
+    \node (s7) [process, fill=green!15, below=of s6, minimum width=11cm, minimum height=0.8cm] {\textbf{Step 7}: Vectorization --- 3072-dimensional embedding generation};
+    \node (s8) [process, fill=purple!15, below=of s7, minimum width=11cm, minimum height=0.8cm] {\textbf{Step 8}: Differential Privacy --- Laplacian noise injection};
+    \node (s9) [process, fill=green!20, below=of s8, minimum width=11cm, minimum height=0.8cm] {\textbf{Step 9}: Secure Persistence --- Multi-tenant vector isolation};
     
     \foreach \i/\j in {s6/s7, s7/s8, s8/s9} {
         \draw [->, thick, blue!70] (\i.south) -- (\j.north);
@@ -194,7 +303,7 @@ When a user submits a query, it passes through an \textbf{8-step pipeline} befor
 \begin{tikzpicture}[node distance=0.5cm, every node/.style={font=\small}]
     \node (q5) [process, fill=cyan!15, minimum width=11cm, minimum height=0.8cm] {\textbf{Step 5}: Vector Search --- Cosine similarity with owner\_id filter (Pinecone)};
     \node (q6) [process, fill=green!15, below=of q5, minimum width=11cm, minimum height=0.8cm] {\textbf{Step 6}: LLM Generation --- Gemini Flash Lite + XAI citations};
-    \node (q7) [process, fill=purple!15, below=of q6, minimum width=11cm, minimum height=0.8cm] {\textbf{Step 7}: De-pseudonymization --- AES-256 decrypt for owner only (pseudo.py)};
+    \node (q7) [process, fill=purple!15, below=of q6, minimum width=11cm, minimum height=0.8cm] {\textbf{Step 7}: De-pseudonymization --- AES-256 decryption for authorized owner};
     \node (q8) [process, fill=green!20, below=of q7, minimum width=11cm, minimum height=0.8cm] {\textbf{Step 8}: Save to Chat History --- MongoDB with session\_id};
     \node (ans) [process, fill=blue!20, below=of q8, minimum width=11cm, minimum height=0.8cm, draw=blue!70] {\textbf{User receives the answer}};
     

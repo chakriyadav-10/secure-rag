@@ -13,6 +13,7 @@ from config import BLOCK_THRESHOLD, MASTER_ADMIN_USER, MASTER_ADMIN_PASS
 from audit_logger import log_event, get_audit_collection
 from rate_limiter import check_rate_limit
 from xai_citations import format_chunk_with_citation
+from safety_scorer import evaluate_safety
 
 # ── Banking topic filter ──────────────────────────────────────────────────────
 # Keyword-based check is far more reliable than asking a lite LLM to self-restrict.
@@ -126,6 +127,14 @@ async def upload(file: UploadFile, token: str):
     # 🔐 Pseudonymization
     pseudo_text = pseudonymize(clean, pii, owner_id=owner_id)
 
+    # 🛡️ Semantic Safety Scoring
+    safety_score, safety_reasoning = await evaluate_safety(pseudo_text[:5000]) # Scan beginning of file
+    if safety_score < 0.7:
+        if user["sub"] != MASTER_ADMIN_USER:
+            block_user(user["sub"])
+        log_event(user["sub"], "UPLOAD_SAFETY_FAILURE", f"Score: {safety_score} | Reason: {safety_reasoning}", status="BLOCKED")
+        return {"error": f"🔴 Document failed semantic safety check (Score: {safety_score}). {safety_reasoning}"}
+
     # Store
     try:
         store(pseudo_text, owner_id)
@@ -143,7 +152,7 @@ async def upload(file: UploadFile, token: str):
     }
 
 @app.post("/query")
-def query(q: str, token: str, session_id: str):
+async def query(q: str, token: str, session_id: str):
     user = authorize(token)
     
     # Limitation Fix: DoS Protection via Rate Limiter
@@ -163,6 +172,17 @@ def query(q: str, token: str, session_id: str):
     if not is_banking_query(q):
         return {
             "answer": "⚠️ I can only assist with banking and financial topics. Please ask a banking-related question.",
+            "source": ""
+        }
+
+    # 🏆 Semantic Safety Scoring (Query)
+    safety_score, safety_reasoning = await evaluate_safety(q)
+    if safety_score < 0.7:
+        if user["sub"] != MASTER_ADMIN_USER:
+            block_user(user["sub"])
+        log_event(user["sub"], "QUERY_SAFETY_FAILURE", f"Score: {safety_score} | Reason: {safety_reasoning}", status="BLOCKED")
+        return {
+            "answer": f"🔴 Query failed semantic safety check (Score: {safety_score}). {safety_reasoning}",
             "source": ""
         }
 

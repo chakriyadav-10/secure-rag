@@ -32,20 +32,21 @@ The primary objectives of this project are:
 
 \begin{enumerate}
     \item To design and implement a \textbf{7-layer security pipeline} for document ingestion in a RAG system.
-    \item To develop a \textbf{context-aware PII detection engine} using a 25-character lookbehind algorithm specific to Indian financial document formats.
+    
+    \item To develop a \textbf{context-aware PII detection engine} using a 25-character look-behind algorithm specific to Indian financial document formats.
+    
     \item To implement \textbf{AES-256-CBC field-level encryption} for pseudonym mappings stored in MongoDB.
+    
     \item To apply \textbf{$\epsilon$-differential privacy} through Laplacian noise injection on 3072-dimensional Gemini embeddings to prevent embedding inversion.
-    \item To enforce \textbf{owner-based multi-tenant document isolation} at the Pinecone vector database query layer.
-    \item To implement \textbf{Role-Based Access Control (RBAC)} with three-tier provisioning: Master Admin, Admin (Manager), and Customer.
 \end{enumerate}
 
 \section{Scope of the Project}
 
-The system is designed as a \textbf{Secure Enterprise Banking RAG} application targeting internal bank operations. The scope includes:
+The system is designed as a RAG application targeting internal bank operations. The scope includes:
 
 \begin{itemize}
-    \item A FastAPI-based backend deployed on Render with MongoDB Atlas and Pinecone as cloud databases.
-    \item A React/Vite-based frontend deployed on Vercel with role-specific dashboards.
+    \item A backend service layer deployed on cloud infrastructure with secured NoSQL and vector databases.
+    \item A client application interface with role-specific dashboards for administrative and customer operations.
     \item Processing of PDF documents containing Indian banking formats (IFSC codes, 9--18 digit account numbers, UPI IDs).
     \item Real-time threat detection, PII masking, and differential privacy during document upload and query operations.
 \end{itemize}
