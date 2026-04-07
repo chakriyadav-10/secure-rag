@@ -146,3 +146,70 @@ The system includes a live inspection tool (\texttt{show\_vectors.py}) that conn
     \item DP noise is present (same document uploaded by different users produces different vectors).
     \item Vectors are 3072-dimensional floating-point arrays.
 \end{enumerate}
+
+\section{User Interface Screenshots}
+
+The system implements a unified authentication gateway with role-based dashboard routing. All three user roles (Master Admin, Admin, Customer) use the same login page, but are dynamically routed to different dashboards based on the JWT role claim. This follows the same design pattern used by AWS IAM, Google Workspace, and Azure AD.
+
+\subsection{Authentication Pages}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.65\textwidth]{register_page.png}
+\caption{Registration page --- Customers self-register with username and password. Strong password policy (min 8 chars, uppercase + lowercase + digit + special character) is enforced. Real-time username uniqueness validation is performed via the \texttt{/check-username} API.}
+\label{fig:register}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.65\textwidth]{login_page.png}
+\caption{Login page --- Unified authentication gateway for all three roles. The same endpoint is used by customers, admins, and master admin. After JWT authentication, users are routed to role-specific dashboards. This prevents URL-based role discovery by attackers.}
+\label{fig:login}
+\end{figure}
+
+\subsection{Role-Specific Dashboards}
+
+Figures~\ref{fig:user_dash},~\ref{fig:admin_dash}, and~\ref{fig:master_dash} demonstrate how the same login page routes to three visually distinct dashboards based on the authenticated user's role.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{user_dashboard.png}
+\caption{Customer dashboard --- Shows the chat interface with AI assistant, personal document upload area (stored in private vault with owner\_id tagging), session history, and the ``Signed in as User'' role badge. Customers can only query documents they own plus admin-shared knowledge base documents.}
+\label{fig:user_dash}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{admin_dashboard.png}
+\caption{Admin (Manager) dashboard --- Shows the Knowledge Base management panel with document upload capability. Documents uploaded by admins are tagged with \texttt{owner\_id: ``admin''} and become accessible to all users as shared banking policy documents. The ``Signed in as Administrator'' badge confirms the role.}
+\label{fig:admin_dash}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{master_admin_dashboard.png}
+\caption{Master Admin dashboard --- Shows the full administrative control panel with three menu items: (1)~Knowledge Base for document management, (2)~User Management for creating manager accounts, and (3)~SIEM Audit Logs for monitoring security events. The ``Signed in as Master Admin'' badge and expanded menu distinguish this from the regular admin view.}
+\label{fig:master_dash}
+\end{figure}
+
+\subsection{RBAC Validation from Screenshots}
+
+Table~\ref{tab:rbac_ui} validates the RBAC enforcement visible in the UI:
+
+\begin{table}[H]
+\centering
+\caption{RBAC enforcement visible across dashboard screenshots}
+\label{tab:rbac_ui}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Feature} & \textbf{Customer} & \textbf{Admin} & \textbf{Master Admin} \\
+\midrule
+Chat Interface & \checkmark & \ding{55} & \ding{55} \\
+Personal Doc Upload & \checkmark & \ding{55} & \ding{55} \\
+Knowledge Base Upload & \ding{55} & \checkmark & \checkmark \\
+User Management & \ding{55} & \ding{55} & \checkmark \\
+SIEM Audit Logs & \ding{55} & \ding{55} & \checkmark \\
+\bottomrule
+\end{tabular}
+\end{table}
+
