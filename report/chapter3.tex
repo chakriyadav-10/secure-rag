@@ -6,42 +6,56 @@ The Secure RAG system follows a three-tier architecture comprising a React front
 
 \begin{figure}[H]
 \centering
-\begin{tikzpicture}[node distance=1.5cm]
-    % Frontend
-    \node (frontend) [process, fill=cyan!15, minimum width=3.5cm, minimum height=2.5cm, align=center] {
-        \textbf{Frontend}\\
-        \footnotesize React/Vite\\
-        \footnotesize (Vercel)\\[2pt]
-        \tiny Login $\bullet$ Chat UI\\
-        \tiny Upload $\bullet$ Admin Panel
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[node distance=1.5cm, every node/.style={font=\small}]
+    % Frontend box
+    \node (frontend) [rectangle, rounded corners, draw=blue!70, fill=cyan!10, minimum width=3cm, minimum height=3cm, align=center] {
+        \textbf{Frontend}\\[3pt]
+        \footnotesize React / Vite\\
+        \footnotesize (Vercel)\\[4pt]
+        \scriptsize $\bullet$ Login Page\\
+        \scriptsize $\bullet$ Chat UI\\
+        \scriptsize $\bullet$ Upload Portal\\
+        \scriptsize $\bullet$ Admin Panel
     };
     
-    % Backend
-    \node (backend) [process, fill=orange!10, minimum width=8cm, minimum height=2.5cm, right=2.5cm of frontend, align=center] {
-        \textbf{Backend --- FastAPI (Render)}
-    };
+    % Arrow
+    \node (apilabel) [right=1.5cm of frontend] {};
     
-    % Backend internal modules
-    \node (auth) [process, fill=green!15, minimum width=2cm, minimum height=0.8cm] at ([yshift=0.4cm]backend.center) {\footnotesize Auth Layer};
-    \node (sec) [security, minimum width=2cm, minimum height=0.8cm, right=0.3cm of auth] {\footnotesize Security Engine};
-    \node (rag) [process, fill=purple!15, minimum width=2cm, minimum height=0.8cm, right=0.3cm of sec] {\footnotesize RAG Engine};
+    % Backend outer box
+    \node (backbox) [rectangle, rounded corners, draw=orange!70, fill=orange!5, 
+          minimum width=9cm, minimum height=5cm, right=3cm of frontend] {};
+    \node[above] at (backbox.north) {\textbf{Backend --- FastAPI (Render)}};
     
-    % Databases
-    \node (mongo) [database, fill=green!15, below=2cm of auth] {\footnotesize MongoDB};
-    \node (pseudo) [database, fill=purple!15, below=2cm of sec] {\footnotesize AES-256};
-    \node (pine) [database, fill=cyan!15, below=2cm of rag] {\footnotesize Pinecone};
+    % Backend modules (top row)
+    \node (auth) [rectangle, rounded corners, draw=green!70, fill=green!15, 
+          minimum width=2.3cm, minimum height=1cm, align=center] 
+          at ([yshift=0.8cm, xshift=-2.8cm]backbox.center) {\footnotesize \textbf{Auth}\\\footnotesize Layer};
+    \node (sec) [rectangle, rounded corners, draw=red!70, fill=red!10, 
+          minimum width=2.3cm, minimum height=1cm, align=center,
+          right=0.4cm of auth] {\footnotesize \textbf{Security}\\\footnotesize Engine};
+    \node (rag) [rectangle, rounded corners, draw=purple!70, fill=purple!10, 
+          minimum width=2.3cm, minimum height=1cm, align=center,
+          right=0.4cm of sec] {\footnotesize \textbf{RAG}\\\footnotesize Engine};
+    
+    % Databases (bottom row)
+    \node (mongo) [rectangle, rounded corners, draw=green!70, fill=green!10, 
+          minimum width=2.3cm, minimum height=1cm, align=center]
+          at ([yshift=-1cm, xshift=-2.8cm]backbox.center) {\footnotesize \textbf{MongoDB}\\\scriptsize Atlas};
+    \node (pseudo) [rectangle, rounded corners, draw=purple!70, fill=purple!10, 
+          minimum width=2.3cm, minimum height=1cm, align=center,
+          right=0.4cm of mongo] {\footnotesize \textbf{AES-256}\\\scriptsize PII Mappings};
+    \node (pine) [rectangle, rounded corners, draw=cyan!70, fill=cyan!10, 
+          minimum width=2.3cm, minimum height=1cm, align=center,
+          right=0.4cm of pseudo] {\footnotesize \textbf{Pinecone}\\\scriptsize Vectors};
     
     % Arrows
-    \draw [arrow, thick, blue] (frontend.east) -- node[above]{\footnotesize REST API} (backend.west);
-    \draw [arrow] (auth.south) -- (mongo.north);
-    \draw [arrow] (sec.south) -- (pseudo.north);
-    \draw [arrow] (rag.south) -- (pine.north);
-    
-    % Labels under databases
-    \node[below=0.1cm of mongo, font=\tiny] {Users, Chats, Audit Logs};
-    \node[below=0.1cm of pseudo, font=\tiny] {PII Mappings};
-    \node[below=0.1cm of pine, font=\tiny] {Document Vectors};
+    \draw [->, thick, blue!70] (frontend.east) -- node[above, font=\footnotesize]{REST API} (backbox.west);
+    \draw [->, thick] (auth.south) -- (mongo.north);
+    \draw [->, thick] (sec.south) -- (pseudo.north);
+    \draw [->, thick] (rag.south) -- (pine.north);
 \end{tikzpicture}
+}%
 \caption{High-level system architecture of Secure RAG}
 \label{fig:arch}
 \end{figure}
@@ -52,25 +66,32 @@ The system implements a three-tier RBAC model with strict separation between pro
 
 \begin{figure}[H]
 \centering
-\begin{tikzpicture}[node distance=1.2cm]
-    % Channel 1
-    \node (env) [process, fill=yellow!20, minimum width=4cm] {\textbf{Environment Variable}};
-    \node (master) [process, fill=yellow!30, below=0.8cm of env, minimum width=4cm] {\textbf{Master Admin} \\ \footnotesize (Bank Head / CTO)};
-    \node (admin) [process, fill=blue!15, below=0.8cm of master, minimum width=4cm] {\textbf{Admin (Manager)} \\ \footnotesize (Branch Manager)};
+\resizebox{0.85\textwidth}{!}{%
+\begin{tikzpicture}[node distance=1cm, every node/.style={font=\small}]
+    % Title
+    \node[font=\large\bfseries] (title) {Dual-Channel Provisioning};
     
-    \draw [arrow, thick] (env) -- node[right, font=\footnotesize]{Hardcoded} (master);
-    \draw [arrow, thick, blue] (master) -- node[right, font=\footnotesize]{Creates credentials} (admin);
+    % Channel 1 header
+    \node (ch1) [below left=1cm and 1cm of title, font=\footnotesize\itshape] {Channel 1: Infrastructure Level};
+    \node (env) [process, fill=yellow!20, minimum width=4.5cm, below=0.3cm of ch1] {\textbf{Environment Variable}};
+    \node (master) [process, fill=yellow!30, below=0.7cm of env, minimum width=4.5cm, align=center] {\textbf{Master Admin} \\ \footnotesize Bank Head / CTO};
+    \node (admin) [process, fill=blue!15, below=0.7cm of master, minimum width=4.5cm, align=center] {\textbf{Admin (Manager)} \\ \footnotesize Branch Manager};
     
-    % Channel 2
-    \node (public) [process, fill=green!15, right=3.5cm of env, minimum width=4cm] {\textbf{Public Registration}};
-    \node (user) [process, fill=green!20, below=0.8cm of public, minimum width=4cm] {\textbf{Normal User} \\ \footnotesize (Bank Customer)};
+    \draw [->, thick] (env) -- node[right, font=\scriptsize]{Hardcoded} (master);
+    \draw [->, thick, blue] (master) -- node[right, font=\scriptsize]{Creates credentials} (admin);
     
-    \draw [arrow, thick] (public) -- node[right, font=\footnotesize]{Self-service} (user);
+    % Channel 2 header
+    \node (ch2) [below right=1cm and 1cm of title, font=\footnotesize\itshape] {Channel 2: Public Self-Service};
+    \node (public) [process, fill=green!15, minimum width=4.5cm, below=0.3cm of ch2] {\textbf{Public Registration}};
+    \node (user) [process, fill=green!20, below=0.7cm of public, minimum width=4.5cm, align=center] {\textbf{Normal User} \\ \footnotesize Bank Customer};
     
-    % Barrier
-    \draw [ultra thick, red, dashed] ([xshift=1.7cm]admin.north east) -- ([xshift=1.7cm]admin.south east) node[midway, right, font=\footnotesize\color{red}] {NO PATH};
+    \draw [->, thick] (public) -- node[right, font=\scriptsize]{Self-service} (user);
     
+    % Red barrier
+    \draw [ultra thick, red, dashed] ([xshift=-0.2cm]ch2.west |- env.north) -- ([xshift=-0.2cm]ch2.west |- admin.south);
+    \node[red, font=\footnotesize\bfseries, rotate=90] at ([xshift=-0.6cm]ch2.west |- master.center) {NO PATH};
 \end{tikzpicture}
+}%
 \caption{Dual-channel RBAC provisioning model}
 \label{fig:rbac}
 \end{figure}
@@ -79,7 +100,7 @@ The system implements a three-tier RBAC model with strict separation between pro
 \centering
 \caption{RBAC role permissions}
 \label{tab:rbac}
-\begin{tabular}{llll}
+\begin{tabular}{lll}
 \toprule
 \textbf{Role} & \textbf{Provisioning} & \textbf{Permissions} \\
 \midrule
@@ -94,57 +115,89 @@ The Master Admin credentials are provisioned via server-level environment variab
 
 \section{Document Upload Pipeline}
 
-The document upload pipeline is the core security mechanism of the system. Every PDF uploaded passes through \textbf{nine sequential security stages} before being stored. Figure~\ref{fig:upload_pipeline} illustrates this pipeline.
+The document upload pipeline is the core security mechanism of the system. Every PDF uploaded passes through \textbf{nine sequential security stages} before being stored. Figure~\ref{fig:upload_pipeline_a} and Figure~\ref{fig:upload_pipeline_b} illustrate this pipeline.
 
 \begin{figure}[H]
 \centering
-\begin{tikzpicture}[node distance=0.6cm]
-    \node (s1) [process, fill=cyan!15, minimum width=10cm] {\textbf{Step 1}: Text Extraction (PyPDF2)};
-    \node (s2) [security, below=of s1, minimum width=10cm] {\textbf{Step 2}: Threat Detection --- SQLi, XSS, Prompt Injection (security.py)};
-    \node (s3) [security, below=of s2, minimum width=10cm, fill=orange!10] {\textbf{Step 3}: Content Sanitization --- Strip HTML, neutralize SQL (security.py)};
-    \node (s4) [process, fill=yellow!15, below=of s3, minimum width=10cm] {\textbf{Step 4}: PII Detection --- 25-char context lookbehind (pii\_detector.py)};
-    \node (s5) [process, fill=purple!15, below=of s4, minimum width=10cm] {\textbf{Step 5}: Pseudonymization + AES-256 Encryption (pseudo.py)};
-    \node (s6) [process, fill=cyan!10, below=of s5, minimum width=10cm] {\textbf{Step 6}: XAI Citations --- Page-level source tagging (xai\_citations.py)};
-    \node (s7) [process, fill=green!15, below=of s6, minimum width=10cm] {\textbf{Step 7}: Vectorization --- Gemini Embedding API $\rightarrow$ 3072-dim (rag.py)};
-    \node (s8) [process, fill=purple!15, below=of s7, minimum width=10cm] {\textbf{Step 8}: Differential Privacy --- Laplacian noise injection (dp\_embedding.py)};
-    \node (s9) [process, fill=green!20, below=of s8, minimum width=10cm] {\textbf{Step 9}: Secure Storage --- Pinecone with owner\_id metadata (db.py)};
+\resizebox{0.9\textwidth}{!}{%
+\begin{tikzpicture}[node distance=0.5cm, every node/.style={font=\small}]
+    \node (s1) [process, fill=cyan!15, minimum width=11cm, minimum height=0.8cm] {\textbf{Step 1}: Text Extraction --- PyPDF2 extracts raw text from PDF pages};
+    \node (s2) [security, below=of s1, minimum width=11cm, minimum height=0.8cm] {\textbf{Step 2}: Threat Detection --- SQLi, XSS, Prompt Injection, Shell (security.py)};
+    \node (s3) [process, fill=orange!10, below=of s2, minimum width=11cm, minimum height=0.8cm, draw=orange!70] {\textbf{Step 3}: Content Sanitization --- Strip HTML tags, neutralize SQL (security.py)};
+    \node (s4) [process, fill=yellow!15, below=of s3, minimum width=11cm, minimum height=0.8cm] {\textbf{Step 4}: PII Detection --- 25-char context lookbehind (pii\_detector.py)};
+    \node (s5) [process, fill=purple!15, below=of s4, minimum width=11cm, minimum height=0.8cm] {\textbf{Step 5}: Pseudonymization + AES-256 Encryption (pseudo.py)};
     
-    % Arrows
-    \foreach \i/\j in {s1/s2, s2/s3, s3/s4, s4/s5, s5/s6, s6/s7, s7/s8, s8/s9} {
-        \draw [arrow, thick, red!70] (\i.south) -- (\j.north);
+    \foreach \i/\j in {s1/s2, s2/s3, s3/s4, s4/s5} {
+        \draw [->, thick, red!70] (\i.south) -- (\j.north);
     }
     
-    % Block arrow from Step 2
-    \node (block) [security, fill=red!30, right=1cm of s2, minimum width=2cm] {\footnotesize BLOCK \& LOG};
-    \draw [arrow, thick, red] (s2.east) -- node[above, font=\tiny]{Threat!} (block.west);
+    % Block arrow
+    \node (block) [security, fill=red!30, right=0.5cm of s2, minimum width=1.8cm, minimum height=0.8cm] {\footnotesize BLOCK};
+    \draw [->, thick, red] (s2.east) -- node[above, font=\tiny]{Threat!} (block.west);
 \end{tikzpicture}
-\caption{9-step secure document upload pipeline}
-\label{fig:upload_pipeline}
+}%
+\caption{Upload pipeline --- Steps 1 to 5 (Security and PII Protection)}
+\label{fig:upload_pipeline_a}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\resizebox{0.9\textwidth}{!}{%
+\begin{tikzpicture}[node distance=0.5cm, every node/.style={font=\small}]
+    \node (s6) [process, fill=cyan!10, minimum width=11cm, minimum height=0.8cm] {\textbf{Step 6}: XAI Citations --- Page-level source tagging (xai\_citations.py)};
+    \node (s7) [process, fill=green!15, below=of s6, minimum width=11cm, minimum height=0.8cm] {\textbf{Step 7}: Vectorization --- Gemini Embedding API $\rightarrow$ 3072 dimensions (rag.py)};
+    \node (s8) [process, fill=purple!15, below=of s7, minimum width=11cm, minimum height=0.8cm] {\textbf{Step 8}: Differential Privacy --- Laplacian noise injection (dp\_embedding.py)};
+    \node (s9) [process, fill=green!20, below=of s8, minimum width=11cm, minimum height=0.8cm] {\textbf{Step 9}: Secure Storage --- Pinecone with owner\_id metadata (db.py)};
+    
+    \foreach \i/\j in {s6/s7, s7/s8, s8/s9} {
+        \draw [->, thick, blue!70] (\i.south) -- (\j.north);
+    }
+\end{tikzpicture}
+}%
+\caption{Upload pipeline --- Steps 6 to 9 (Vectorization and Storage)}
+\label{fig:upload_pipeline_b}
 \end{figure}
 
 \section{Query Pipeline}
 
-When a user submits a query, it passes through an \textbf{8-step pipeline} before the answer is returned. Figure~\ref{fig:query_pipeline} shows this flow.
+When a user submits a query, it passes through an \textbf{8-step pipeline} before the answer is returned. Figure~\ref{fig:query_pipeline_a} and Figure~\ref{fig:query_pipeline_b} show this flow.
 
 \begin{figure}[H]
 \centering
-\begin{tikzpicture}[node distance=0.6cm]
-    \node (q0) [process, fill=blue!10, minimum width=10cm] {\textbf{User Query}: ``What is the transfer amount?''};
-    \node (q1) [process, fill=green!15, below=of q0, minimum width=10cm] {\textbf{Step 1}: JWT Authentication --- Verify token, extract user\_id};
-    \node (q2) [process, fill=cyan!10, below=of q1, minimum width=10cm] {\textbf{Step 2}: Rate Limiting --- Check requests/minute per user};
-    \node (q3) [security, below=of q2, minimum width=10cm] {\textbf{Step 3}: Threat Scan --- Is query itself malicious?};
-    \node (q4) [process, fill=yellow!15, below=of q3, minimum width=10cm] {\textbf{Step 4}: Banking Topic Filter --- Reject non-banking queries};
-    \node (q5) [process, fill=cyan!15, below=of q4, minimum width=10cm] {\textbf{Step 5}: Vector Search --- Cosine similarity with owner\_id filter (Pinecone)};
-    \node (q6) [process, fill=green!15, below=of q5, minimum width=10cm] {\textbf{Step 6}: LLM Generation --- Gemini Flash Lite + XAI citations};
-    \node (q7) [process, fill=purple!15, below=of q6, minimum width=10cm] {\textbf{Step 7}: De-pseudonymization --- AES decrypt for owner only (pseudo.py)};
-    \node (q8) [process, fill=green!20, below=of q7, minimum width=10cm] {\textbf{Step 8}: Save to Chat History --- MongoDB with session\_id};
+\resizebox{0.9\textwidth}{!}{%
+\begin{tikzpicture}[node distance=0.5cm, every node/.style={font=\small}]
+    \node (q0) [process, fill=blue!10, minimum width=11cm, minimum height=0.8cm] {\textbf{User Query}: ``What is the transfer amount?''};
+    \node (q1) [process, fill=green!15, below=of q0, minimum width=11cm, minimum height=0.8cm] {\textbf{Step 1}: JWT Authentication --- Verify token, extract user\_id};
+    \node (q2) [process, fill=cyan!10, below=of q1, minimum width=11cm, minimum height=0.8cm] {\textbf{Step 2}: Rate Limiting --- Check requests/minute per user};
+    \node (q3) [security, below=of q2, minimum width=11cm, minimum height=0.8cm] {\textbf{Step 3}: Threat Scan --- Is query itself malicious?};
+    \node (q4) [process, fill=yellow!15, below=of q3, minimum width=11cm, minimum height=0.8cm] {\textbf{Step 4}: Banking Topic Filter --- Reject non-banking queries};
     
-    \foreach \i/\j in {q0/q1, q1/q2, q2/q3, q3/q4, q4/q5, q5/q6, q6/q7, q7/q8} {
-        \draw [arrow, thick, blue!70] (\i.south) -- (\j.north);
+    \foreach \i/\j in {q0/q1, q1/q2, q2/q3, q3/q4} {
+        \draw [->, thick, blue!70] (\i.south) -- (\j.north);
     }
 \end{tikzpicture}
-\caption{8-step secure query pipeline}
-\label{fig:query_pipeline}
+}%
+\caption{Query pipeline --- Steps 1 to 4 (Authentication and Filtering)}
+\label{fig:query_pipeline_a}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\resizebox{0.9\textwidth}{!}{%
+\begin{tikzpicture}[node distance=0.5cm, every node/.style={font=\small}]
+    \node (q5) [process, fill=cyan!15, minimum width=11cm, minimum height=0.8cm] {\textbf{Step 5}: Vector Search --- Cosine similarity with owner\_id filter (Pinecone)};
+    \node (q6) [process, fill=green!15, below=of q5, minimum width=11cm, minimum height=0.8cm] {\textbf{Step 6}: LLM Generation --- Gemini Flash Lite + XAI citations};
+    \node (q7) [process, fill=purple!15, below=of q6, minimum width=11cm, minimum height=0.8cm] {\textbf{Step 7}: De-pseudonymization --- AES-256 decrypt for owner only (pseudo.py)};
+    \node (q8) [process, fill=green!20, below=of q7, minimum width=11cm, minimum height=0.8cm] {\textbf{Step 8}: Save to Chat History --- MongoDB with session\_id};
+    \node (ans) [process, fill=blue!20, below=of q8, minimum width=11cm, minimum height=0.8cm, draw=blue!70] {\textbf{User receives the answer}};
+    
+    \foreach \i/\j in {q5/q6, q6/q7, q7/q8, q8/ans} {
+        \draw [->, thick, blue!70] (\i.south) -- (\j.north);
+    }
+\end{tikzpicture}
+}%
+\caption{Query pipeline --- Steps 5 to 8 (Retrieval, Generation, and Response)}
+\label{fig:query_pipeline_b}
 \end{figure}
 
 \section{Multi-Tenant Document Isolation}
