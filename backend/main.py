@@ -49,6 +49,11 @@ def startup_event():
     except Exception as e:
         print("Warning: Could not seed master admin:", e)
 
+@app.get("/health")
+def health_check():
+    """Render health-check endpoint to confirm port availability."""
+    return {"status": "Live", "version": APP_VERSION}
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

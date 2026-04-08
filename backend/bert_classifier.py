@@ -73,8 +73,12 @@ class BERTThreatClassifier:
             print(f"BERT Inference Error: {e}")
             return 0.8 # Default to safe-ish on error for demo stability
 
-# Singleton instance for high-performance reuse
-bert_scorer = BERTThreatClassifier()
+# Lazy instantiation variables
+_bert_scorer_instance = None
 
 def get_bert_safety_score(text):
-    return bert_scorer.predict_safe_score(text)
+    global _bert_scorer_instance
+    if _bert_scorer_instance is None:
+        print("🤖 Initializing Security Intelligence Model (BERT)...")
+        _bert_scorer_instance = BERTThreatClassifier()
+    return _bert_scorer_instance.predict_safe_score(text)
