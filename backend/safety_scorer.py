@@ -1,9 +1,8 @@
-from google import genai
-from google.genai import types
 from config import GEMINI_API_KEY
 import json, re
 
-client = genai.Client(api_key=GEMINI_API_KEY)
+# Client will be instantiated lazily inside the function to speed up server boot
+_genai_client = None
 
 from bert_classifier import get_bert_safety_score
 
@@ -13,6 +12,14 @@ async def evaluate_safety(text):
     and Gemini 2.0 Flash Lite reasoning.
     Returns: (composite_score: float, reasoning: str)
     """
+    global _genai_client
+    if _genai_client is None:
+        from google import genai
+        from google.genai import types
+        _genai_client = (genai.Client(api_key=GEMINI_API_KEY), types)
+
+    client, types = _genai_client
+
     if not text or len(text.strip()) < 5:
         return 1.0, "Input too short to evaluate, assuming safe."
 

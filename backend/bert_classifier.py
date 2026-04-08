@@ -1,5 +1,3 @@
-from transformers import pipeline
-import torch
 import re
 
 class BERTThreatClassifier:
@@ -11,12 +9,14 @@ class BERTThreatClassifier:
 
     def __new__(cls):
         if cls._instance is None:
+            # HEAVY IMPORTS: Moved inside to prevent Render Port Discovery timeouts
+            from transformers import pipeline
+            import torch
+            
             cls._instance = super(BERTThreatClassifier, cls).__new__(cls)
             cls._instance.model_loaded = False
             try:
                 # Load the classifier (Sentiment as proxy for maliciousness/negativity)
-                # In a production banking environment, this would be a fine-tuned 
-                # BERT model on prompt injection and banking fraud data.
                 cls._instance.classifier = pipeline(
                     "sentiment-analysis", 
                     model="distilbert-base-uncased-finetuned-sst-2-english",
